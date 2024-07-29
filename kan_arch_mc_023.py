@@ -13,7 +13,6 @@ from sklearn.preprocessing import MinMaxScaler
 from imblearn.over_sampling import SMOTE, KMeansSMOTE, SVMSMOTE
 from imblearn.base import BaseSampler
 
-
 N_SEED = 42
 np.random.seed(N_SEED)
 
@@ -95,8 +94,8 @@ torch.set_default_dtype(torch.float64)
 # path to training datasets
 datasets = Path("", "training_data", "men")
 # select computational device -> changed to CPU as it is faster for small datasets (as SVD)
-DEVICE = "cpu" # torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#torch.set_default_device(DEVICE)
+DEVICE = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
 for dataset in datasets.iterdir():
     print(f"evaluating dataset {dataset}")
@@ -111,13 +110,24 @@ for dataset in datasets.iterdir():
     input_size = X.shape[1]
     # define KAN architecture
     kan_archs = [
-                 [input_size, input_size * 2, 2],
-                 [input_size, int(input_size / 2), int(input_size / 4), 2],
-                 [input_size, input_size * 2, int(input_size / 4), 2],
-                 [input_size, input_size + int(0.5 * input_size), 2],
-                 [input_size, input_size - int(0.5 * input_size), 2],
-                 [input_size, input_size + int(0.5 * input_size), int(0.5 * input_size), 2],
-                 [input_size, input_size, input_size, 2]]
+        [input_size, input_size * 2, 2],
+        [input_size, int(input_size / 2), int(input_size / 4), 2],
+        [input_size, input_size * 2, int(input_size / 4), 2],
+        [input_size, input_size + int(0.5 * input_size), 2],
+        [input_size, input_size - int(0.5 * input_size), 2],
+        [input_size, input_size + int(0.5 * input_size), int(0.5 * input_size), 2],
+        [input_size, input_size, input_size, 2],
+        [input_size, input_size + int(0.5 * input_size) + 10, 2],
+        [input_size, input_size + int(0.5 * input_size) - 10, 2],
+        [input_size, input_size - int(0.5 * input_size) + 10, 2],
+        [input_size, input_size - int(0.5 * input_size) - 10, 2],
+        [input_size, input_size - int(0.5 * input_size), input_size - int(0.5 * input_size), 2],
+        [input_size, input_size + int(0.5 * input_size), input_size - int(0.5 * input_size), 2],
+        [input_size, input_size - int(0.5 * input_size) + 10, input_size - int(0.5 * input_size), 2],
+        [input_size, input_size + int(0.5 * input_size) - 10, input_size - int(0.5 * input_size), 2],
+        [input_size, input_size - int(0.5 * input_size), input_size - int(0.5 * input_size) + 10, 2],
+        [input_size, input_size + int(0.5 * input_size), input_size - int(0.5 * input_size) + 5, 2],
+    ]
     # iterate over KAN architectures and train for each dataset
     for arch in kan_archs:
         torch.manual_seed(0)
@@ -149,7 +159,7 @@ for dataset in datasets.iterdir():
             # create KAN model
             model = KAN(width=arch, grid=5, k=3, seed=N_SEED, auto_save=False, save_act=True)
             # speed upt
-            #model = model.speed()
+            # model = model.speed()
             # load model to device
             model.to(DEVICE)
             # although the dataset is balanced, KAN tends to overfit to unhealthy...
@@ -157,9 +167,9 @@ for dataset in datasets.iterdir():
             # generally it should be hyperparameter to optimize
             class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
             # train model
-            results = model.fit(dataset, opt="LBFGS", lr=0.1, lamb=0.001, steps=10, batch=-1, update_grid=True,
-                                  metrics=(train_acc, test_acc, test_specificity, test_recall),
-                                  loss_fn=torch.nn.CrossEntropyLoss(class_weights))
+            results = model.fit(dataset, opt="LBFGS", lr=0.1, lamb=0.001, steps=20, batch=-1, update_grid=True,
+                                metrics=(train_acc, test_acc, test_specificity, test_recall),
+                                loss_fn=torch.nn.CrossEntropyLoss(class_weights))
             # infotainment during training
             print(f"final test acc: {results['test_acc'][-1]}"
                   f" mean test acc: {np.mean(results['test_acc'])}")

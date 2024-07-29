@@ -16,7 +16,7 @@ random.seed(RANDOM_SEED)
 
 # possible feature combinations
 diff_pitch = [True]
-stdev_f0 = [True]
+stdev_f0 = [True, False]
 spectral_centroid = [True]
 spectral_contrast = [True]
 spectral_flatness = [True]
@@ -25,7 +25,7 @@ zcr = [True]
 mfccs = [13]
 var_mfccs = [False]
 formants = [False]
-lfccs = [True]
+lfccs = [True, False]
 skewness = [True]
 shannon_entropy = [True]
 sexes = [0, 1]
