@@ -87,6 +87,7 @@ def test_specificity():
     specificity = tn / (tn + fp)
     return specificity
 
+torch.manual_seed(32)
 
 # since PyKAN 0.1.2 it is necessary to magically set torch default type to float64
 # to avoid issues with matrix inversion during training with the LBFGS optimizer
