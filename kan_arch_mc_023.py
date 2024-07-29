@@ -160,7 +160,7 @@ for dataset in datasets.iterdir():
             results = model.fit(dataset, opt="LBFGS", lr=0.1, lamb=0.001, steps=10, batch=-1, update_grid=True,
                                   metrics=(train_acc, test_acc, test_specificity, test_recall),
                                   loss_fn=torch.nn.CrossEntropyLoss(class_weights))
-            # infotainment
+            # infotainment during training
             print(f"final test acc: {results['test_acc'][-1]}"
                   f" mean test acc: {np.mean(results['test_acc'])}")
             # TODO: add metrics for imbalanced datasets
