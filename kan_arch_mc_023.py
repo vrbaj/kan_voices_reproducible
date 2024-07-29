@@ -168,7 +168,7 @@ for dataset in datasets.iterdir():
             # generally it should be hyperparameter to optimize
             class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
             # train model
-            results = model.fit(dataset, opt="LBFGS", lr=0.1, lamb=0.001, steps=20, batch=-1, update_grid=True,
+            results = model.fit(dataset, opt="LBFGS", lr=0.1, lamb=0.001, steps=12, batch=-1, update_grid=True,
                                 metrics=(train_acc, test_acc, test_specificity, test_recall),
                                 loss_fn=torch.nn.CrossEntropyLoss(class_weights))
             # infotainment during training
