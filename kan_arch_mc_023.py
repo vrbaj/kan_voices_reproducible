@@ -98,7 +98,7 @@ datasets = Path("", "training_data", "men")
 DEVICE = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
-to_evaluate = ["6560", "7547"]
+to_evaluate = ["minimalistic", "maximalistic"]
 for dataset in list(datasets.iterdir()):
     if dataset.name in to_evaluate:
         print(f"evaluating dataset {dataset}")
@@ -140,6 +140,10 @@ for dataset in list(datasets.iterdir()):
             result_dir.mkdir(parents=True, exist_ok=True)
             # Monte Carlo cross-validation = split train/test 10 times
             print(f"evaluating {str(arch)}")
+            if len(arch) > 3:
+                lr = 0.01
+            else:
+                lr = 0.1
             for idx in range(10):
                 # use random_state for reproducible split (KmeansSMOTE is not reproducible anyway...)
                 X_train, X_test, y_train, y_test = train_test_split(
@@ -170,7 +174,7 @@ for dataset in list(datasets.iterdir()):
                 # generally it should be hyperparameter to optimize
                 class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
                 # train model
-                results = model.fit(dataset, opt="LBFGS", lr=0.1, lamb=0.001, steps=20, batch=-1, update_grid=True,
+                results = model.fit(dataset, opt="LBFGS", lr=lr, lamb=0.001, steps=20, batch=-1, update_grid=True,
                                     metrics=(train_acc, test_acc, test_specificity, test_recall),
                                     loss_fn=torch.nn.CrossEntropyLoss(class_weights))
                 # infotainment during training
