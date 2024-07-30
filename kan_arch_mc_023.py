@@ -99,7 +99,7 @@ DEVICE = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
 to_evaluate = ["6560", "7547"]
-for dataset in datasets.iterdir():
+for dataset in list(datasets.iterdir()):
     if dataset in to_evaluate:
         print(f"evaluating dataset {dataset}")
         # load dataset
