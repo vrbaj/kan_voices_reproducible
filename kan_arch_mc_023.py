@@ -98,83 +98,85 @@ datasets = Path("", "training_data", "men")
 DEVICE = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
+to_evaluate = ["6560", "7547"]
 for dataset in datasets.iterdir():
-    print(f"evaluating dataset {dataset}")
-    # load dataset
-    with open(dataset.joinpath("dataset.pk"), "rb") as f:
-        dataset_file = pickle.load(f)
-    X = np.array(dataset_file["data"])
-    y = np.array(dataset_file["labels"])
-    # path where to store results
-    results_path = Path(".", "results_mc", dataset)
-    # get the number of features
-    input_size = X.shape[1]
-    # define KAN architecture
-    kan_archs = [
-        [input_size, input_size * 2, 2],
-        [input_size, int(input_size / 2), int(input_size / 4), 2],
-        [input_size, input_size * 2, int(input_size / 4), 2],
-        [input_size, input_size + int(0.5 * input_size), 2],
-        [input_size, input_size - int(0.5 * input_size), 2],
-        [input_size, input_size + int(0.5 * input_size), int(0.5 * input_size), 2],
-        [input_size, input_size, input_size, 2],
-        [input_size, input_size + int(0.5 * input_size) + 10, 2],
-        [input_size, input_size + int(0.5 * input_size) - 10, 2],
-        [input_size, input_size - int(0.5 * input_size) + 10, 2],
-        [input_size, input_size - int(0.5 * input_size) - 10, 2],
-        [input_size, input_size - int(0.5 * input_size), input_size - int(0.5 * input_size), 2],
-        [input_size, input_size + int(0.5 * input_size), input_size - int(0.5 * input_size), 2],
-        [input_size, input_size - int(0.5 * input_size) + 10, input_size - int(0.5 * input_size), 2],
-        [input_size, input_size + int(0.5 * input_size) - 10, input_size - int(0.5 * input_size), 2],
-        [input_size, input_size - int(0.5 * input_size), input_size - int(0.5 * input_size) + 10, 2],
-        [input_size, input_size + int(0.5 * input_size), input_size - int(0.5 * input_size) + 5, 2],
-    ]
-    # iterate over KAN architectures and train for each dataset
-    for arch in kan_archs:
-        torch.manual_seed(0)
+    if dataset in to_evaluate:
+        print(f"evaluating dataset {dataset}")
+        # load dataset
+        with open(dataset.joinpath("dataset.pk"), "rb") as f:
+            dataset_file = pickle.load(f)
+        X = np.array(dataset_file["data"])
+        y = np.array(dataset_file["labels"])
+        # path where to store results
+        results_path = Path(".", "results_mc", dataset)
+        # get the number of features
+        input_size = X.shape[1]
+        # define KAN architecture
+        kan_archs = [
+            [input_size, input_size * 2, 2],
+            [input_size, int(input_size / 2), int(input_size / 4), 2],
+            [input_size, input_size * 2, int(input_size / 4), 2],
+            [input_size, input_size + int(0.5 * input_size), 2],
+            [input_size, input_size - int(0.5 * input_size), 2],
+            [input_size, input_size + int(0.5 * input_size), int(0.5 * input_size), 2],
+            [input_size, input_size, input_size, 2],
+            [input_size, input_size + int(0.5 * input_size) + 10, 2],
+            [input_size, input_size + int(0.5 * input_size) - 10, 2],
+            [input_size, input_size - int(0.5 * input_size) + 10, 2],
+            [input_size, input_size - int(0.5 * input_size) - 10, 2],
+            [input_size, input_size - int(0.5 * input_size), input_size - int(0.5 * input_size), 2],
+            [input_size, input_size + int(0.5 * input_size), input_size - int(0.5 * input_size), 2],
+            [input_size, input_size - int(0.5 * input_size) + 10, input_size - int(0.5 * input_size), 2],
+            [input_size, input_size + int(0.5 * input_size) - 10, input_size - int(0.5 * input_size), 2],
+            [input_size, input_size - int(0.5 * input_size), input_size - int(0.5 * input_size) + 10, 2],
+            [input_size, input_size + int(0.5 * input_size), input_size - int(0.5 * input_size) + 5, 2],
+        ]
+        # iterate over KAN architectures and train for each dataset
+        for arch in kan_archs:
+            torch.manual_seed(0)
 
-        # create results directory for each dataset and evaluated architecture
-        result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", ""))
-        result_dir.mkdir(parents=True, exist_ok=True)
-        # Monte Carlo cross-validation = split train/test 10 times
-        print(f"evaluating {str(arch)}")
-        for idx in range(10):
-            # use random_state for reproducible split (KmeansSMOTE is not reproducible anyway...)
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.1, random_state=idx)
-            # KMeansSMOTE resampling. if fails 10x SMOTE resampling
-            X_resampled, y_resampled = CustomSMOTE(kmeans_args={"random_state": N_SEED}).fit_resample(X_train, y_train)
-            # MinMaxScaling
-            scaler = MinMaxScaler(feature_range=(-1, 1))
-            X_train_scaled = scaler.fit_transform(X_resampled)
-            X_test_scaled = scaler.transform(X_test)
-            print(np.isnan(np.min(X_train_scaled)), np.isnan(np.min(X_test_scaled)))
-            # KAN dataset format, load it to device
-            dataset = {"train_input": torch.from_numpy(X_train_scaled).to(DEVICE),
-                       "train_label": torch.from_numpy(y_resampled).type(
-                           torch.LongTensor).to(DEVICE),
-                       "test_input": torch.from_numpy(X_test_scaled).to(DEVICE),
-                       "test_label": torch.from_numpy(y_test).type(torch.LongTensor).to(DEVICE)}
-            # feature dimension sanity check
-            # print(dataset["train_input"].dtype)
-            # create KAN model
-            model = KAN(width=arch, grid=5, k=3, seed=N_SEED, auto_save=False, save_act=True)
-            # speed upt
-            # model = model.speed()
-            # load model to device
-            model.to(DEVICE)
-            # although the dataset is balanced, KAN tends to overfit to unhealthy...
-            class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
-            # generally it should be hyperparameter to optimize
-            class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
-            # train model
-            results = model.fit(dataset, opt="LBFGS", lr=0.1, lamb=0.001, steps=20, batch=-1, update_grid=True,
-                                metrics=(train_acc, test_acc, test_specificity, test_recall),
-                                loss_fn=torch.nn.CrossEntropyLoss(class_weights))
-            # infotainment during training
-            print(f"final test acc: {results['test_acc'][-1]}"
-                  f" mean test acc: {np.mean(results['test_acc'])}")
-            # TODO: add metrics for imbalanced datasets
-            # dump results
-            with open(result_dir.joinpath(f'kan_res_{idx}.pickle'), "wb") as output_file:
-                pickle.dump(results, output_file)
+            # create results directory for each dataset and evaluated architecture
+            result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", ""))
+            result_dir.mkdir(parents=True, exist_ok=True)
+            # Monte Carlo cross-validation = split train/test 10 times
+            print(f"evaluating {str(arch)}")
+            for idx in range(10):
+                # use random_state for reproducible split (KmeansSMOTE is not reproducible anyway...)
+                X_train, X_test, y_train, y_test = train_test_split(
+                    X, y, test_size=0.1, random_state=idx)
+                # KMeansSMOTE resampling. if fails 10x SMOTE resampling
+                X_resampled, y_resampled = CustomSMOTE(kmeans_args={"random_state": N_SEED}).fit_resample(X_train, y_train)
+                # MinMaxScaling
+                scaler = MinMaxScaler(feature_range=(-1, 1))
+                X_train_scaled = scaler.fit_transform(X_resampled)
+                X_test_scaled = scaler.transform(X_test)
+                print(np.isnan(np.min(X_train_scaled)), np.isnan(np.min(X_test_scaled)))
+                # KAN dataset format, load it to device
+                dataset = {"train_input": torch.from_numpy(X_train_scaled).to(DEVICE),
+                           "train_label": torch.from_numpy(y_resampled).type(
+                               torch.LongTensor).to(DEVICE),
+                           "test_input": torch.from_numpy(X_test_scaled).to(DEVICE),
+                           "test_label": torch.from_numpy(y_test).type(torch.LongTensor).to(DEVICE)}
+                # feature dimension sanity check
+                # print(dataset["train_input"].dtype)
+                # create KAN model
+                model = KAN(width=arch, grid=5, k=3, seed=N_SEED, auto_save=False, save_act=True)
+                # speed upt
+                # model = model.speed()
+                # load model to device
+                model.to(DEVICE)
+                # although the dataset is balanced, KAN tends to overfit to unhealthy...
+                class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
+                # generally it should be hyperparameter to optimize
+                class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
+                # train model
+                results = model.fit(dataset, opt="LBFGS", lr=0.1, lamb=0.001, steps=20, batch=-1, update_grid=True,
+                                    metrics=(train_acc, test_acc, test_specificity, test_recall),
+                                    loss_fn=torch.nn.CrossEntropyLoss(class_weights))
+                # infotainment during training
+                print(f"final test acc: {results['test_acc'][-1]}"
+                      f" mean test acc: {np.mean(results['test_acc'])}")
+                # TODO: add metrics for imbalanced datasets
+                # dump results
+                with open(result_dir.joinpath(f'kan_res_{idx}.pickle'), "wb") as output_file:
+                    pickle.dump(results, output_file)
