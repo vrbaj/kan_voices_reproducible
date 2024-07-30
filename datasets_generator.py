@@ -18,16 +18,16 @@ random.seed(RANDOM_SEED)
 diff_pitch = [False]
 stdev_f0 = [False]
 spectral_centroid = [False]
-spectral_contrast = [True]
+spectral_contrast = [False]
 spectral_flatness = [False]
-spectral_rolloff = [True]
+spectral_rolloff = [False]
 zcr = [False]
-mfccs = [20]
+mfccs = [13]
 var_mfccs = [False]
 formants = [False]
-lfccs = [True]
+lfccs = [False]
 skewness = [False]
-shannon_entropy = [True]
+shannon_entropy = [False]
 sexes = [0]
 
 def dataset_config_to_json(experiment_config, file_path: Path):
@@ -158,7 +158,7 @@ def compose_dataset(dataset_params: dict) -> None:
     if dataset_params["sex"] == 0:
         subdir_name = "men"
 
-    dataset_path = Path(".").joinpath("training_data", subdir_name, "7547")
+    dataset_path = Path(".").joinpath("training_data", subdir_name, "minimalistic")
     dataset_path.mkdir(parents=True)
     dataset_file = dataset_path.joinpath("dataset.pk")
     dump_to_pickle(data_to_dump, dataset_file)
