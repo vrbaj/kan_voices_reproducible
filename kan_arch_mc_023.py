@@ -98,7 +98,7 @@ datasets = Path("", "training_data", "men")
 DEVICE = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
-to_evaluate = ["minimalistic", "maximalistic"]
+to_evaluate = ["best_for_men_20_wierd"]
 for dataset in list(datasets.iterdir()):
     if dataset.name in to_evaluate:
         print(f"evaluating dataset {dataset}")
