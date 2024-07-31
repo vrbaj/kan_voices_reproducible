@@ -13,20 +13,22 @@ from tqdm.contrib.concurrent import process_map
 
 RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
-
+# {"gender": 0, "min_age": 20, "diff_pitch": true, "stdev_f0": true, "mfcc": 13, "var_mfcc": false,
+# "spectral_centroid": true, "spectral_contrast": false, "spectral_flatness": false, "spectral_rolloff": false,
+# "zero_crossing_rate": true, "formants": false, "lfcc": true, "skewness": false, "shannon_entropy": true}
 # possible feature combinations
 diff_pitch = [True]
 stdev_f0 = [True]
 spectral_centroid = [True]
-spectral_contrast = [True]
-spectral_flatness = [True]
-spectral_rolloff = [True]
+spectral_contrast = [False]
+spectral_flatness = [False]
+spectral_rolloff = [False]
 zcr = [True]
-mfccs = [20]
-var_mfccs = [True]
-formants = [True]
+mfccs = [13]
+var_mfccs = [False]
+formants = [False]
 lfccs = [True]
-skewness = [True]
+skewness = [False]
 shannon_entropy = [True]
 sexes = [0]
 
@@ -158,7 +160,7 @@ def compose_dataset(dataset_params: dict) -> None:
     if dataset_params["sex"] == 0:
         subdir_name = "men"
 
-    dataset_path = Path(".").joinpath("training_data", subdir_name, "maximalistic")
+    dataset_path = Path(".").joinpath("training_data", subdir_name, "best_for_men_20_wierd")
     dataset_path.mkdir(parents=True)
     dataset_file = dataset_path.joinpath("dataset.pk")
     dump_to_pickle(data_to_dump, dataset_file)

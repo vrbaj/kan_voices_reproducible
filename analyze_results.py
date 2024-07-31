@@ -10,12 +10,11 @@ if __name__ == "__main__":
     # path to results to analyze. It is expected that directory contains multiple
     # folders with different dataset and each folder contains subfolder
     # representing various architectures (kan_arch_mc.py).
+    historical_best = []
     pickled_results_path = Path(".", "results_mc", "training_data", "men")
     for dataset in sorted(pickled_results_path.iterdir()):
         for arch_result in dataset.iterdir():
             print(f"evaluating architecture {arch_result}")
-
-
             best_uar = []
             for result in arch_result.glob("**/*.pickle"):
                 # read result for a single train/test split
@@ -36,4 +35,6 @@ if __name__ == "__main__":
             # print the BEST UAR for each split and MEAN of BEST UAR
             print(f"The best UAR for each split: {TO_PRINT}")
             print(f"Mean uar: {np.mean(best_uar)}")
+            historical_best.append(np.mean(best_uar))
+    print(f"BEST: {np.max(historical_best)}")
 
