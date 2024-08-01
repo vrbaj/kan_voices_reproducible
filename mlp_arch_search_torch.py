@@ -103,7 +103,7 @@ def train_and_evaluate(model, train_loader, val_loader, epochs):
 N_SEED = 42
 datasets = Path("", "training_data")
 # select computational device -> changed to CPU as it is faster for small datasets (as SVD)
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = "cpu" # torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
 torch.set_default_dtype(torch.float64)
