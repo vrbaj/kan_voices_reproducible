@@ -6,9 +6,10 @@ from pathlib import Path
 import torch
 import numpy as np
 from kan import KAN
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.preprocessing import MinMaxScaler
+
 
 from imblearn.over_sampling import SMOTE, KMeansSMOTE, SVMSMOTE
 from imblearn.base import BaseSampler
@@ -105,6 +106,7 @@ def test_uar():
     uar = 0.5 * (recall + specificity)
     return uar
 
+
 torch.manual_seed(32)
 
 # since PyKAN 0.1.2 it is necessary to magically set torch default type to float64
@@ -116,9 +118,9 @@ datasets = Path("", "training_data", "men")
 DEVICE = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
-to_evaluate = ["best_for_men_20_wierd"]
+to_evaluate = []
 for dataset in list(datasets.iterdir()):
-    if dataset.name in to_evaluate:
+    if dataset.name in to_evaluate or len(to_evaluate) == 0:
         print(f"evaluating dataset {dataset}")
         # load dataset
         with open(dataset.joinpath("dataset.pk"), "rb") as f:
@@ -155,10 +157,12 @@ for dataset in list(datasets.iterdir()):
                 lr = 0.1
             else:
                 lr = 0.1
-            for idx in range(10):
-                # use random_state for reproducible split (KmeansSMOTE is not reproducible anyway...)
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X, y, test_size=0.1, random_state=idx)
+            skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=32)
+            idx = 0
+            for train_index, test_index in skf.split(X, y):
+                idx += 1
+                X_train, X_test = X[train_index], X[test_index]
+                y_train, y_test = y[train_index], y[test_index]
                 # KMeansSMOTE resampling. if fails 10x SMOTE resampling
                 X_resampled, y_resampled = CustomSMOTE(kmeans_args={"random_state": N_SEED}).fit_resample(X_train, y_train)
                 # MinMaxScaling
@@ -185,9 +189,9 @@ for dataset in list(datasets.iterdir()):
                 # generally it should be hyperparameter to optimize
                 class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
                 # train model
-                results = model.fit(dataset, opt="LBFGS", lr=lr, lamb=0.001, steps=20, batch=-1, update_grid=True,
+                results = model.fit(dataset, opt="LBFGS", lr=lr, lamb=0.001, steps=12, batch=-1, update_grid=True,
                                     metrics=(train_acc, test_acc, test_specificity, test_recall, test_uar),
-                                    loss_fn=torch.nn.CrossEntropyLoss(class_weights))
+                                    loss_fn=torch.nn.CrossEntropyLoss())
                 # infotainment during training
                 print(f"final test acc: {results['test_acc'][-1]}"
                       f" mean test acc: {np.mean(results['test_acc'])}",
