@@ -20,17 +20,17 @@ random.seed(RANDOM_SEED)
 diff_pitch = [True]
 stdev_f0 = [True]
 spectral_centroid = [True]
-spectral_contrast = [False]
-spectral_flatness = [False]
-spectral_rolloff = [False]
+spectral_contrast = [True]
+spectral_flatness = [True]
+spectral_rolloff = [True]
 zcr = [True]
-mfccs = [13]
-var_mfccs = [False]
-formants = [False]
+mfccs = [20]
+var_mfccs = [True]
+formants = [True]
 lfccs = [True]
-skewness = [False]
+skewness = [True]
 shannon_entropy = [True]
-sexes = [0]
+sexes = [0, 1]
 
 def dataset_config_to_json(experiment_config, file_path: Path):
     """Dump a dataset config to json."""
@@ -160,7 +160,7 @@ def compose_dataset(dataset_params: dict) -> None:
     if dataset_params["sex"] == 0:
         subdir_name = "men"
 
-    dataset_path = Path(".").joinpath("training_data", subdir_name, "best_for_men_20_wierd")
+    dataset_path = Path(".").joinpath("training_data", subdir_name, folder_to_dump)
     dataset_path.mkdir(parents=True)
     dataset_file = dataset_path.joinpath("dataset.pk")
     dump_to_pickle(data_to_dump, dataset_file)
