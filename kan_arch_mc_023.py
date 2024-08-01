@@ -87,6 +87,24 @@ def test_specificity():
     specificity = tn / (tn + fp)
     return specificity
 
+def test_uar():
+    """
+    Recall for the test set. That is how the PyKAN needs the metric functions.
+    """
+    predictions = torch.argmax(model(dataset["test_input"]), dim=1)
+    labels = dataset["test_label"]
+    # Calculate TP, TN, FP, FN
+    tn = ((predictions == 0) & (labels == 0)).sum().float()
+    tp = ((predictions == 1) & (labels == 1)).sum().float()
+    fn = ((predictions == 0) & (labels == 1)).sum().float()
+    fp = ((predictions == 1) & (labels == 0)).sum().float()
+
+    # Calculate recall
+    recall = tp / (tp + fn)
+    specificity = tn / (tn + fp)
+    uar = 0.5 * (recall + specificity)
+    return uar
+
 torch.manual_seed(32)
 
 # since PyKAN 0.1.2 it is necessary to magically set torch default type to float64
@@ -115,21 +133,14 @@ for dataset in list(datasets.iterdir()):
         kan_archs = [
             [input_size, input_size * 2, 2],
             [input_size, int(input_size / 2), int(input_size / 4), 2],
-            [input_size, input_size * 2, int(input_size / 4), 2],
             [input_size, input_size + int(0.5 * input_size), 2],
             [input_size, input_size - int(0.5 * input_size), 2],
-            [input_size, input_size + int(0.5 * input_size), int(0.5 * input_size), 2],
-            [input_size, input_size, input_size, 2],
             [input_size, input_size + int(0.5 * input_size) + 10, 2],
             [input_size, input_size + int(0.5 * input_size) - 10, 2],
             [input_size, input_size - int(0.5 * input_size) + 10, 2],
             [input_size, input_size - int(0.5 * input_size) - 10, 2],
-            [input_size, input_size - int(0.5 * input_size), input_size - int(0.5 * input_size), 2],
-            [input_size, input_size + int(0.5 * input_size), input_size - int(0.5 * input_size), 2],
-            [input_size, input_size - int(0.5 * input_size) + 10, input_size - int(0.5 * input_size), 2],
-            [input_size, input_size + int(0.5 * input_size) - 10, input_size - int(0.5 * input_size), 2],
-            [input_size, input_size - int(0.5 * input_size), input_size - int(0.5 * input_size) + 10, 2],
-            [input_size, input_size + int(0.5 * input_size), input_size - int(0.5 * input_size) + 5, 2],
+            [input_size, input_size, input_size, 2],
+            [input_size, input_size, int(input_size / 2), 2],
         ]
         # iterate over KAN architectures and train for each dataset
         for arch in kan_archs:
@@ -141,7 +152,7 @@ for dataset in list(datasets.iterdir()):
             # Monte Carlo cross-validation = split train/test 10 times
             print(f"evaluating {str(arch)}")
             if len(arch) > 3:
-                lr = 0.01
+                lr = 0.1
             else:
                 lr = 0.1
             for idx in range(10):
@@ -175,11 +186,12 @@ for dataset in list(datasets.iterdir()):
                 class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
                 # train model
                 results = model.fit(dataset, opt="LBFGS", lr=lr, lamb=0.001, steps=20, batch=-1, update_grid=True,
-                                    metrics=(train_acc, test_acc, test_specificity, test_recall),
+                                    metrics=(train_acc, test_acc, test_specificity, test_recall, test_uar),
                                     loss_fn=torch.nn.CrossEntropyLoss(class_weights))
                 # infotainment during training
                 print(f"final test acc: {results['test_acc'][-1]}"
-                      f" mean test acc: {np.mean(results['test_acc'])}")
+                      f" mean test acc: {np.mean(results['test_acc'])}",
+                      f"best test uar: {np.max(results["test_uar"])} ")
                 # TODO: add metrics for imbalanced datasets
                 # dump results
                 with open(result_dir.joinpath(f'kan_res_{idx}.pickle'), "wb") as output_file:
