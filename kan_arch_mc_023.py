@@ -145,7 +145,7 @@ for dataset in datasets.iterdir():
     X = np.array(dataset_file["data"])
     y = np.array(dataset_file["labels"])
     # path where to store results
-    results_path = Path(".", "results_mc_lamb0.001_g5_k3", dataset)
+    results_path = Path(".", "results_mc_lamb0.001_g5_k4", dataset)
     # get the number of features
     input_size = X.shape[1]
     # define KAN architecture
@@ -210,7 +210,7 @@ for dataset in datasets.iterdir():
             # feature dimension sanity check
             # print(dataset["train_input"].dtype)
             # create KAN model
-            model = KAN(width=arch, grid=5, k=3, seed=N_SEED, auto_save=False, save_act=True)
+            model = KAN(width=arch, grid=5, k=4, seed=N_SEED, auto_save=False, save_act=True)
             # speed upt
             # model = model.speed()
             # load model to device
