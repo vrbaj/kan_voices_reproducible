@@ -134,7 +134,7 @@ torch.set_default_dtype(torch.float64)
 datasets = Path("", "training_data")
 # select computational device -> changed to CPU as it is faster for small datasets (as SVD)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# torch.set_default_device(DEVICE)
+torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
 
 for dataset in datasets.iterdir():
