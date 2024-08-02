@@ -1,19 +1,30 @@
 import pickle
 from pathlib import Path
+import random
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import confusion_matrix
 from matplotlib import pyplot as plt
-
-from imblearn.over_sampling import SMOTE, KMeansSMOTE, SVMSMOTE
+from imblearn.over_sampling import SMOTE, KMeansSMOTE
 from imblearn.base import BaseSampler
 from torch.utils.data import DataLoader, TensorDataset
 
-import numpy as np
+
+# Set seeds for reproducibility
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+set_seed(42)  # You can choose any number you prefer
 
 
 class CustomSMOTE(BaseSampler):
@@ -127,14 +138,14 @@ for dataset in datasets.iterdir():
 
     # Define the architecture variations
     mlp_archs = [
-        # [input_size, input_size * 2, input_size],
-        # [input_size, input_size * 2 - int(0.1 * input_size), input_size],
-        # [input_size, input_size * 2 - int(0.2 * input_size), input_size],
-        # [input_size, input_size * 2 - int(0.3 * input_size), input_size],
-        # [input_size, input_size * 2 - int(0.4 * input_size), input_size],
-        # [input_size, input_size * 2 - int(0.5 * input_size), input_size],
-        # [input_size, input_size * 2 - int(0.6 * input_size), input_size],
-        # [input_size, input_size * 2 - int(0.7 * input_size), input_size]
+        [input_size, input_size * 2, input_size],
+        [input_size, input_size * 2 - int(0.1 * input_size), input_size],
+        [input_size, input_size * 2 - int(0.2 * input_size), input_size],
+        [input_size, input_size * 2 - int(0.3 * input_size), input_size],
+        [input_size, input_size * 2 - int(0.4 * input_size), input_size],
+        [input_size, input_size * 2 - int(0.5 * input_size), input_size],
+        [input_size, input_size * 2 - int(0.6 * input_size), input_size],
+        [input_size, input_size * 2 - int(0.7 * input_size), input_size],
         [input_size, input_size * 2 - int(0.8 * input_size), input_size],
         [input_size, input_size * 2 - int(0.9 * input_size), input_size],
         [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.2 * input_size)],
@@ -152,19 +163,19 @@ for dataset in datasets.iterdir():
         [input_size, input_size * 2 - int(0.5 * input_size), 2 * input_size - int(0.6 * input_size)],
         [input_size, input_size * 2 - int(0.6 * input_size), 2 * input_size - int(0.7 * input_size)],
         [input_size, input_size * 2 - int(0.7 * input_size), 2 * input_size - int(0.8 * input_size)],
-        [input_size, input_size * 2 - int(0.8 * input_size), 2 * input_size - int(0.9 * input_size)]
+        [input_size, input_size * 2 - int(0.8 * input_size), 2 * input_size - int(0.9 * input_size)],
     ]
 
     for arch in mlp_archs:
         best_uar = []
-        torch.manual_seed(0)
+        set_seed(N_SEED)
 
         # create results directory for each dataset and evaluated architecture
         result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", ""))
         result_dir.mkdir(parents=True, exist_ok=True)
         # Monte Carlo cross-validation = split train/test 10 times
         print(f"evaluating {str(arch)}")
-        skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=32)
+        skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=N_SEED)
         idx = 0
         for train_index, test_index in skf.split(X, y):
             idx += 1
