@@ -342,7 +342,7 @@ for k in evaluated_ks:
                     # feature dimension sanity check
                     # print(dataset["train_input"].dtype)
                     # create KAN model
-                    model = KAN(width=arch, grid=grid, k=k, seed=N_SEED, auto_save=True, save_act=True)
+                    model = KAN(width=arch, grid=grid, k=k, seed=N_SEED, auto_save=False, save_act=True)
                     # speed upt
                     # model = model.speed()
                     # load model to device
