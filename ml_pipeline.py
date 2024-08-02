@@ -141,7 +141,7 @@ def main(sex: str = "women",
                 results_file.joinpath("results.csv"),
                 index=False, mode="a",
                 header=header, encoding="utf8", lineterminator="\n")
-        checksuming_results()
+        #checksuming_results()
 
 
     # pylint: enable=too-many-locals
