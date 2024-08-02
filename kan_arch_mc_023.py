@@ -2,6 +2,7 @@
 KAN arch search script.
 """
 import pickle
+import random
 from pathlib import Path
 import torch
 import numpy as np
@@ -15,8 +16,18 @@ from imblearn.over_sampling import SMOTE, KMeansSMOTE, SVMSMOTE
 from imblearn.base import BaseSampler
 
 N_SEED = 42
-np.random.seed(N_SEED)
 
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+set_seed(42)  # You can choose any number you prefer
 
 class CustomSMOTE(BaseSampler):
     """Class that implements KMeansSMOTE oversampling. Due to initialization of KMeans
