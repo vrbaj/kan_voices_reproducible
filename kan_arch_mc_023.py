@@ -17,7 +17,10 @@ from imblearn.base import BaseSampler
 
 N_SEED = 42
 
+import os
 
+# Set the CUBLAS_WORKSPACE_CONFIG environment variable
+os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:2'
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -26,6 +29,7 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     torch.use_deterministic_algorithms(True)
+
 
 
 set_seed(42)  # You can choose any number you prefer
