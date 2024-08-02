@@ -352,7 +352,7 @@ for k in evaluated_ks:
                     # generally it should be hyperparameter to optimize
                     class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
                     # train model
-                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=12, batch=-1, update_grid=True,
+                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=20, batch=-1, update_grid=True,
                                         metrics=(train_acc, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar),
                                         loss_fn=torch.nn.CrossEntropyLoss())
                     # infotainment during training
