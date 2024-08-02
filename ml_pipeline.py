@@ -106,7 +106,7 @@ def main(sex: str = "women",
 
     dataset = get_datasets_to_process(training_data, results_data, dataset_slice)
     dataset = sorted(dataset)
-
+    print(dataset)
     for training_dataset_str in tqdm.tqdm(dataset):
         results_file = results_data.joinpath(str(training_dataset_str))
         # path to training dataset
