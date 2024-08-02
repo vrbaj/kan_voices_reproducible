@@ -106,7 +106,6 @@ def main(sex: str = "women",
 
     dataset = get_datasets_to_process(training_data, results_data, dataset_slice)
     dataset = sorted(dataset)
-    print(dataset)
     for training_dataset_str in tqdm.tqdm(dataset):
         results_file = results_data.joinpath(str(training_dataset_str))
         # path to training dataset
@@ -114,37 +113,38 @@ def main(sex: str = "women",
         # print(f"evaluate {training_dataset}")
         results_data.joinpath(str(training_dataset.name)).mkdir(parents=True, exist_ok=True)
         # load dataset
-        with open(training_data.joinpath(str(training_dataset.name), "dataset_selected.pk"), "rb") as f:
-            train_set = pickle.load(f)
-        dataset = {"X": np.array(train_set["data"]),
-                   "y": np.array(train_set["labels"])}
-        # imblearn pipeline perform the resampling only with the training dataset
-        # and scaling according to training dataset
-        pipeline, param_grid = get_classifier(classifier, random_seed=RANDOM_SEED)
-        cross_validation = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
-        # sklearn gridsearch with crossvalidation
-        grid_search = GridSearchCV(pipeline, param_grid, cv=cross_validation, scoring=scoring_dict,
-                                   n_jobs=-1, refit=False)
-        grid_search.fit(dataset["X"], dataset["y"])
-        # create folder with the training_dataset name to store results
-        results_file.mkdir(exist_ok=True)
-        # no need to write header again and again and again,...
-        if results_file.joinpath("results.csv").exists():
-            header = False
-        else:
-            header = True
+        if not f"{training_dataset.name}" == "dataset_selected.pk":
+            with open(training_data.joinpath(str(training_dataset.name), "dataset_selected.pk"), "rb") as f:
+                train_set = pickle.load(f)
+            dataset = {"X": np.array(train_set["data"]),
+                       "y": np.array(train_set["labels"])}
+            # imblearn pipeline perform the resampling only with the training dataset
+            # and scaling according to training dataset
+            pipeline, param_grid = get_classifier(classifier, random_seed=RANDOM_SEED)
+            cross_validation = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
+            # sklearn gridsearch with crossvalidation
+            grid_search = GridSearchCV(pipeline, param_grid, cv=cross_validation, scoring=scoring_dict,
+                                       n_jobs=-1, refit=False)
+            grid_search.fit(dataset["X"], dataset["y"])
+            # create folder with the training_dataset name to store results
+            results_file.mkdir(exist_ok=True)
+            # no need to write header again and again and again,...
+            if results_file.joinpath("results.csv").exists():
+                header = False
+            else:
+                header = True
 
-        # dump gridsearch results to a results.csv
-        pd.DataFrame(grid_search.cv_results_).round(6)[
-            ["params", "mean_test_accuracy", "mean_test_recall", "mean_test_specificity",
-             "mean_test_mcc", "mean_test_gm", "mean_test_uar", "mean_test_bm"]].to_csv(
-            results_file.joinpath("results.csv"),
-            index=False, mode="a",
-            header=header, encoding="utf8", lineterminator="\n")
-    checksuming_results()
+            # dump gridsearch results to a results.csv
+            pd.DataFrame(grid_search.cv_results_).round(6)[
+                ["params", "mean_test_accuracy", "mean_test_recall", "mean_test_specificity",
+                 "mean_test_mcc", "mean_test_gm", "mean_test_uar", "mean_test_bm"]].to_csv(
+                results_file.joinpath("results.csv"),
+                index=False, mode="a",
+                header=header, encoding="utf8", lineterminator="\n")
+        checksuming_results()
 
 
-# pylint: enable=too-many-locals
+    # pylint: enable=too-many-locals
 
 
 if __name__ == "__main__":
