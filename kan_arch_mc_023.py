@@ -32,7 +32,7 @@ def set_seed(seed):
 
 
 
-set_seed(42)  # You can choose any number you prefer
+set_seed(N_SEED)  # You can choose any number you prefer
 
 class CustomSMOTE(BaseSampler):
     """Class that implements KMeansSMOTE oversampling. Due to initialization of KMeans
@@ -320,7 +320,7 @@ for k in evaluated_ks:
                 result_dir.mkdir(parents=True, exist_ok=True)
                 # Monte Carlo cross-validation = split train/test 10 times
                 print(f"evaluating {str(arch)}")
-                skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=32)
+                skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=N_SEED)
                 idx = 0
                 for train_index, test_index in skf.split(X, y):
                     idx += 1
