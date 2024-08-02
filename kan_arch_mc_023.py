@@ -152,98 +152,214 @@ datasets = Path("", "training_data")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
+evaluated_ks = [3, 4, 5, 6]
+evaluated_grids = [5, 6, 7, 8]
+for k in evaluated_ks:
+    for grid in evaluated_grids:
+        for dataset in datasets.iterdir():
+            print(f"evaluating dataset {dataset}")
+            # load dataset
+            with open(dataset.joinpath("dataset_selected.pk"), "rb") as f:
+                dataset_file = pickle.load(f)
+            X = np.array(dataset_file["data"])
+            y = np.array(dataset_file["labels"])
+            # path where to store results
+            results_path = Path(".", f"results_mc_lamb0.001_g{grid}_k{k}", dataset)
+            # get the number of features
+            input_size = X.shape[1]
+            # define KAN architecture
+            kan_archs = [
+                [input_size, input_size * 2 + int(0.9 * input_size), 2],
+                [input_size, input_size * 2 + int(0.8 * input_size), 2],
+                [input_size, input_size * 2 + int(0.7 * input_size), 2],
+                [input_size, input_size * 2 + int(0.6 * input_size), 2],
+                [input_size, input_size * 2 + int(0.5 * input_size), 2],
+                [input_size, input_size * 2 + int(0.4 * input_size), 2],
+                [input_size, input_size * 2 + int(0.3 * input_size), 2],
+                [input_size, input_size * 2 + int(0.2 * input_size), 2],
+                [input_size, input_size * 2 + int(0.1 * input_size), 2],
+                [input_size, input_size * 2, 2],
+                [input_size, input_size * 2 - int(0.1 * input_size), 2],
+                [input_size, input_size * 2 - int(0.2 * input_size), 2],
+                [input_size, input_size * 2 - int(0.3 * input_size), 2],
+                [input_size, input_size * 2 - int(0.4 * input_size), 2],
+                [input_size, input_size * 2 - int(0.5 * input_size), 2],
+                [input_size, input_size * 2 - int(0.6 * input_size), 2],
+                [input_size, input_size * 2 - int(0.7 * input_size), 2],
+                [input_size, input_size * 2 - int(0.8 * input_size), 2],
+                [input_size, input_size * 2 - int(0.9 * input_size), 2],
+                [input_size, input_size, 2],
+                [input_size, input_size - int(0.1 * input_size), 2],
+                [input_size, input_size - int(0.2 * input_size), 2],
+                [input_size, input_size - int(0.3 * input_size), 2],
+                [input_size, input_size - int(0.4 * input_size), 2],
+                [input_size, input_size - int(0.5 * input_size), 2],
+                [input_size, input_size - int(0.6 * input_size), 2],
+                [input_size, input_size - int(0.7 * input_size), 2],
+                [input_size, input_size - int(0.8 * input_size), 2],
+                [input_size, input_size - int(0.9 * input_size), 2],
 
-for dataset in datasets.iterdir():
-    print(f"evaluating dataset {dataset}")
-    # load dataset
-    with open(dataset.joinpath("dataset_selected.pk"), "rb") as f:
-        dataset_file = pickle.load(f)
-    X = np.array(dataset_file["data"])
-    y = np.array(dataset_file["labels"])
-    # path where to store results
-    results_path = Path(".", "results_mc_lamb0.001_g5_k4", dataset)
-    # get the number of features
-    input_size = X.shape[1]
-    # define KAN architecture
-    kan_archs = [
-        [input_size, input_size * 2 + int(0.2 * input_size), 2],
-        [input_size, input_size * 2 + int(0.1 * input_size), 2],
-        [input_size, input_size * 2, 2],
-        [input_size, input_size * 2 - int(0.1 * input_size), 2],
-        [input_size, input_size * 2 - int(0.2 * input_size), 2],
-        [input_size, input_size * 2 - int(0.3 * input_size), 2],
-        [input_size, input_size * 2 - int(0.4 * input_size), 2],
-        [input_size, input_size * 2 - int(0.5 * input_size), 2],
-        [input_size, input_size * 2 - int(0.6 * input_size), 2],
-        [input_size, input_size * 2 - int(0.7 * input_size), 2],
-        [input_size, input_size * 2 - int(0.8 * input_size), 2],
-        [input_size, input_size * 2 - int(0.9 * input_size), 2],
-        [input_size, input_size, 2],
-        [input_size, input_size - int(0.1 * input_size), 2],
-        [input_size, input_size - int(0.2 * input_size), 2],
-        [input_size, input_size - int(0.3 * input_size), 2],
-        [input_size, input_size - int(0.4 * input_size), 2],
-        [input_size, input_size - int(0.5 * input_size), 2],
-        [input_size, input_size, input_size, 2],
-        [input_size, input_size, input_size - int(0.1 * input_size), 2],
-        [input_size, input_size, input_size - int(0.2 * input_size), 2],
-        [input_size, input_size, input_size - int(0.3 * input_size), 2],
-        [input_size, input_size, input_size - int(0.4 * input_size), 2],
-        [input_size, input_size, input_size - int(0.5 * input_size), 2],
-        [input_size, input_size, input_size - int(0.6 * input_size), 2],
-        [input_size, input_size, input_size - int(0.7 * input_size), 2],
-        [input_size, input_size, input_size - int(0.8 * input_size), 2],
-        [input_size, input_size, input_size - int(0.9 * input_size), 2],
-    ]
-    # iterate over KAN architectures and train for each dataset
-    for arch in kan_archs:
-        torch.manual_seed(0)
+                [input_size, input_size * 2, input_size, 2],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size, 2],
+                [input_size, input_size * 2 - int(0.2 * input_size), input_size, 2],
+                [input_size, input_size * 2 - int(0.3 * input_size), input_size, 2],
+                [input_size, input_size * 2 - int(0.4 * input_size), input_size, 2],
+                [input_size, input_size * 2 - int(0.5 * input_size), input_size, 2],
+                [input_size, input_size * 2 - int(0.6 * input_size), input_size, 2],
+                [input_size, input_size * 2 - int(0.7 * input_size), input_size, 2],
+                [input_size, input_size * 2 - int(0.8 * input_size), input_size, 2],
+                [input_size, input_size * 2 - int(0.9 * input_size), input_size, 2],
 
-        # create results directory for each dataset and evaluated architecture
-        result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", ""))
-        result_dir.mkdir(parents=True, exist_ok=True)
-        # Monte Carlo cross-validation = split train/test 10 times
-        print(f"evaluating {str(arch)}")
-        skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=32)
-        idx = 0
-        for train_index, test_index in skf.split(X, y):
-            idx += 1
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-            # KMeansSMOTE resampling. if fails 10x SMOTE resampling
-            X_resampled, y_resampled = CustomSMOTE(kmeans_args={"random_state": N_SEED}).fit_resample(X_train, y_train)
-            # MinMaxScaling
-            scaler = MinMaxScaler(feature_range=(-1, 1))
-            X_train_scaled = scaler.fit_transform(X_resampled)
-            X_test_scaled = scaler.transform(X_test)
-            print(np.isnan(np.min(X_train_scaled)), np.isnan(np.min(X_test_scaled)))
-            # KAN dataset format, load it to device
-            dataset = {"train_input": torch.from_numpy(X_train_scaled).to(DEVICE),
-                       "train_label": torch.from_numpy(y_resampled).type(
-                           torch.LongTensor).to(DEVICE),
-                       "test_input": torch.from_numpy(X_test_scaled).to(DEVICE),
-                       "test_label": torch.from_numpy(y_test).type(torch.LongTensor).to(DEVICE)}
-            # feature dimension sanity check
-            # print(dataset["train_input"].dtype)
-            # create KAN model
-            model = KAN(width=arch, grid=5, k=4, seed=N_SEED, auto_save=False, save_act=True)
-            # speed upt
-            # model = model.speed()
-            # load model to device
-            model.to(DEVICE)
-            # although the dataset is balanced, KAN tends to overfit to unhealthy...
-            class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
-            # generally it should be hyperparameter to optimize
-            class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
-            # train model
-            results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=12, batch=-1, update_grid=True,
-                                metrics=(train_acc, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar),
-                                loss_fn=torch.nn.CrossEntropyLoss())
-            # infotainment during training
-            print(f"final test acc: {results['test_acc'][-1]}"
-                  f" mean test acc: {np.mean(results['test_acc'])}",
-                  f"best test uar: {np.max(results["test_uar"])} ")
-            # TODO: add metrics for imbalanced datasets
-            # dump results
-            with open(result_dir.joinpath(f'kan_res_{idx}.pickle'), "wb") as output_file:
-                pickle.dump(results, output_file)
+                [input_size, input_size * 2, input_size - int(0.1 * input_size), 2],
+                [input_size, input_size * 2, input_size - int(0.2 * input_size), 2],
+                [input_size, input_size * 2, input_size - int(0.3 * input_size), 2],
+                [input_size, input_size * 2, input_size - int(0.4 * input_size), 2],
+                [input_size, input_size * 2, input_size - int(0.5 * input_size), 2],
+                [input_size, input_size * 2, input_size - int(0.6 * input_size), 2],
+                [input_size, input_size * 2, input_size - int(0.7 * input_size), 2],
+                [input_size, input_size * 2, input_size - int(0.8 * input_size), 2],
+                [input_size, input_size * 2, input_size - int(0.9 * input_size), 2],
+
+                [input_size, input_size, input_size - int(0.1 * input_size), 2],
+                [input_size, input_size, input_size - int(0.2 * input_size), 2],
+                [input_size, input_size, input_size - int(0.3 * input_size), 2],
+                [input_size, input_size, input_size - int(0.4 * input_size), 2],
+                [input_size, input_size, input_size - int(0.5 * input_size), 2],
+                [input_size, input_size, input_size - int(0.6 * input_size), 2],
+                [input_size, input_size, input_size - int(0.7 * input_size), 2],
+                [input_size, input_size, input_size - int(0.8 * input_size), 2],
+                [input_size, input_size, input_size - int(0.9 * input_size), 2],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.1 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.2 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.3 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.4 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.5 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.9 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.3 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.4 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.5 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.9 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.4 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.5 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.9 * input_size)],
+                [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.5 * input_size)],
+                [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.9 * input_size)],
+                [input_size, input_size * 2 - int(0.5 * input_size), input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.5 * input_size), input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.5 * input_size), input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.5 * input_size), input_size - int(0.9 * input_size)],
+                [input_size, input_size * 2 - int(0.6 * input_size), input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.6 * input_size), input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.6 * input_size), input_size - int(0.9 * input_size)],
+                [input_size, input_size * 2 - int(0.7 * input_size), input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.7 * input_size), input_size - int(0.9 * input_size)],
+                [input_size, input_size * 2 - int(0.8 * input_size), input_size - int(0.9 * input_size)],
+
+                [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.2 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.3 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.4 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.5 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.9 * input_size)],
+
+                [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.3 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.4 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.5 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.9 * input_size)],
+
+                [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.4 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.5 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.9 * input_size)],
+
+                [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.5 * input_size)],
+                [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.9 * input_size)],
+
+                [input_size, input_size * 2 - int(0.5 * input_size), 2 * input_size - int(0.6 * input_size)],
+                [input_size, input_size * 2 - int(0.5 * input_size), 2 * input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.5 * input_size), 2 * input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.5 * input_size), 2 * input_size - int(0.9 * input_size)],
+
+                [input_size, input_size * 2 - int(0.6 * input_size), 2 * input_size - int(0.7 * input_size)],
+                [input_size, input_size * 2 - int(0.6 * input_size), 2 * input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.6 * input_size), 2 * input_size - int(0.9 * input_size)],
+
+                [input_size, input_size * 2 - int(0.7 * input_size), 2 * input_size - int(0.8 * input_size)],
+                [input_size, input_size * 2 - int(0.7 * input_size), 2 * input_size - int(0.9 * input_size)],
+
+                [input_size, input_size * 2 - int(0.8 * input_size), 2 * input_size - int(0.9 * input_size)],
+            ]
+            # iterate over KAN architectures and train for each dataset
+            for arch in kan_archs:
+                torch.manual_seed(0)
+
+                # create results directory for each dataset and evaluated architecture
+                result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", ""))
+                result_dir.mkdir(parents=True, exist_ok=True)
+                # Monte Carlo cross-validation = split train/test 10 times
+                print(f"evaluating {str(arch)}")
+                skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=32)
+                idx = 0
+                for train_index, test_index in skf.split(X, y):
+                    idx += 1
+                    X_train, X_test = X[train_index], X[test_index]
+                    y_train, y_test = y[train_index], y[test_index]
+                    # KMeansSMOTE resampling. if fails 10x SMOTE resampling
+                    X_resampled, y_resampled = CustomSMOTE(kmeans_args={"random_state": N_SEED}).fit_resample(X_train, y_train)
+                    # MinMaxScaling
+                    scaler = MinMaxScaler(feature_range=(-1, 1))
+                    X_train_scaled = scaler.fit_transform(X_resampled)
+                    X_test_scaled = scaler.transform(X_test)
+                    print(np.isnan(np.min(X_train_scaled)), np.isnan(np.min(X_test_scaled)))
+                    # KAN dataset format, load it to device
+                    dataset = {"train_input": torch.from_numpy(X_train_scaled).to(DEVICE),
+                               "train_label": torch.from_numpy(y_resampled).type(
+                                   torch.LongTensor).to(DEVICE),
+                               "test_input": torch.from_numpy(X_test_scaled).to(DEVICE),
+                               "test_label": torch.from_numpy(y_test).type(torch.LongTensor).to(DEVICE)}
+                    # feature dimension sanity check
+                    # print(dataset["train_input"].dtype)
+                    # create KAN model
+                    model = KAN(width=arch, grid=grid, k=k, seed=N_SEED, auto_save=True, save_act=True)
+                    # speed upt
+                    # model = model.speed()
+                    # load model to device
+                    model.to(DEVICE)
+                    # although the dataset is balanced, KAN tends to overfit to unhealthy...
+                    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
+                    # generally it should be hyperparameter to optimize
+                    class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
+                    # train model
+                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=12, batch=-1, update_grid=True,
+                                        metrics=(train_acc, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar),
+                                        loss_fn=torch.nn.CrossEntropyLoss())
+                    # infotainment during training
+                    print(f"final test acc: {results['test_acc'][-1]}"
+                          f" mean test acc: {np.mean(results['test_acc'])}",
+                          f"best test uar: {np.max(results["test_uar"])} ")
+                    # TODO: add metrics for imbalanced datasets
+                    # dump results
+                    with open(result_dir.joinpath(f'kan_res_{idx}.pickle'), "wb") as output_file:
+                        pickle.dump(results, output_file)
