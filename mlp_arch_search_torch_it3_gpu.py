@@ -140,6 +140,60 @@ for dataset in datasets.iterdir():
     mlp_archs = [
 
         [input_size, input_size, input_size],
+        [input_size, input_size - int(0.1 * input_size), input_size - int(0.2 * input_size)],
+        [input_size, input_size - int(0.1 * input_size), input_size - int(0.3 * input_size)],
+        [input_size, input_size - int(0.1 * input_size), input_size - int(0.4 * input_size)],
+        [input_size, input_size - int(0.1 * input_size), input_size - int(0.5 * input_size)],
+        [input_size, input_size - int(0.1 * input_size), input_size - int(0.6 * input_size)],
+        [input_size, input_size - int(0.1 * input_size), input_size - int(0.7 * input_size)],
+        [input_size, input_size - int(0.1 * input_size), input_size - int(0.8 * input_size)],
+        [input_size, input_size - int(0.1 * input_size), input_size - int(0.9 * input_size)],
+        [input_size, input_size - int(0.1 * input_size), input_size - int(0.1 * input_size)],
+
+        [input_size, input_size - int(0.2 * input_size), input_size - int(0.2 * input_size)],
+        [input_size, input_size - int(0.2 * input_size), input_size - int(0.3 * input_size)],
+        [input_size, input_size - int(0.2 * input_size), input_size - int(0.4 * input_size)],
+        [input_size, input_size - int(0.2 * input_size), input_size - int(0.5 * input_size)],
+        [input_size, input_size - int(0.2 * input_size), input_size - int(0.6 * input_size)],
+        [input_size, input_size - int(0.2 * input_size), input_size - int(0.7 * input_size)],
+        [input_size, input_size - int(0.2 * input_size), input_size - int(0.8 * input_size)],
+        [input_size, input_size - int(0.2 * input_size), input_size - int(0.9 * input_size)],
+
+        [input_size, input_size - int(0.3 * input_size), input_size - int(0.3 * input_size)],
+        [input_size, input_size - int(0.3 * input_size), input_size - int(0.4 * input_size)],
+        [input_size, input_size - int(0.3 * input_size), input_size - int(0.5 * input_size)],
+        [input_size, input_size - int(0.3 * input_size), input_size - int(0.6 * input_size)],
+        [input_size, input_size - int(0.3 * input_size), input_size - int(0.7 * input_size)],
+        [input_size, input_size - int(0.3 * input_size), input_size - int(0.8 * input_size)],
+        [input_size, input_size - int(0.3 * input_size), input_size - int(0.9 * input_size)],
+
+        [input_size, input_size - int(0.4 * input_size), input_size - int(0.4 * input_size)],
+        [input_size, input_size - int(0.4 * input_size), input_size - int(0.5 * input_size)],
+        [input_size, input_size - int(0.4 * input_size), input_size - int(0.6 * input_size)],
+        [input_size, input_size - int(0.4 * input_size), input_size - int(0.7 * input_size)],
+        [input_size, input_size - int(0.4 * input_size), input_size - int(0.8 * input_size)],
+        [input_size, input_size - int(0.4 * input_size), input_size - int(0.9 * input_size)],
+
+        [input_size, input_size - int(0.5 * input_size), input_size - int(0.5 * input_size)],
+        [input_size, input_size - int(0.5 * input_size), input_size - int(0.6 * input_size)],
+        [input_size, input_size - int(0.5 * input_size), input_size - int(0.7 * input_size)],
+        [input_size, input_size - int(0.5 * input_size), input_size - int(0.8 * input_size)],
+        [input_size, input_size - int(0.5 * input_size), input_size - int(0.9 * input_size)],
+
+        [input_size, input_size - int(0.6 * input_size), input_size - int(0.6 * input_size)],
+        [input_size, input_size - int(0.6 * input_size), input_size - int(0.7 * input_size)],
+        [input_size, input_size - int(0.6 * input_size), input_size - int(0.8 * input_size)],
+        [input_size, input_size - int(0.6 * input_size), input_size - int(0.9 * input_size)],
+
+        [input_size, input_size - int(0.7 * input_size), input_size - int(0.7 * input_size)],
+        [input_size, input_size - int(0.7 * input_size), input_size - int(0.8 * input_size)],
+        [input_size, input_size - int(0.7 * input_size), input_size - int(0.9 * input_size)],
+
+        [input_size, input_size - int(0.8 * input_size), input_size - int(0.8 * input_size)],
+        [input_size, input_size - int(0.8 * input_size), input_size - int(0.9 * input_size)],
+
+        [input_size, input_size - int(0.9 * input_size), input_size - int(0.9 * input_size)],
+
         [input_size, input_size, input_size - int(0.1 * input_size)],
         [input_size, input_size, input_size - int(0.2 * input_size)],
         [input_size, input_size, input_size - int(0.3 * input_size)],
