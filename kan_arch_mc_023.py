@@ -152,7 +152,10 @@ datasets = Path("", "training_data")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
-evaluated_ks = [3, 4, 5, 6]
+# evaluated_ks = [3, 4, 5, 6]
+# evaluated_ks = [3, 4] # blade 4
+# evaluated_ks = [5] # blade 1
+evaluated_ks = [6] # Kuba
 evaluated_grids = [5, 6, 7, 8]
 for k in evaluated_ks:
     for grid in evaluated_grids:

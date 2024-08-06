@@ -12,7 +12,7 @@ if __name__ == "__main__":
     # representing various architectures (kan_arch_mc.py).
     historical_best_men = []
     historical_best_women = []
-    pickled_results_path = Path(".", "results_mc_lamb0.001_g5_k3", "training_data")
+    pickled_results_path = Path(".", "results_mlp", "training_data")
     for dataset in sorted(pickled_results_path.iterdir()):
         for arch_result in dataset.iterdir():
             print(f"evaluating architecture {arch_result}")
@@ -21,14 +21,13 @@ if __name__ == "__main__":
                 # read result for a single train/test split
                 with open(result, "rb") as f:
                     experiment_results = pickle.load(f)
-
                 # compute UAR
                 try:
                     # uar = [(recall + specificity) / 2 for recall, specificity in
                     #        zip(experiment_results["test_recall"],
                     #            experiment_results["test_specificity"])]
                     # select best UAR for this train/test split
-                    best_uar.append(np.max(experiment_results["test_uar"]))
+                    best_uar.append(np.max(experiment_results["uar"]))
 
                 except KeyError:
                     print("fuckedup")
