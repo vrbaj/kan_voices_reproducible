@@ -38,7 +38,7 @@ if __name__ == "__main__":
                     with open(result, "rb") as f:
                         experiment_results = pickle.load(f)
                     # compute UAR
-
+                    is_nan = False
                     try:
                         mcc = [(tp * tn - fp * fn) / np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) for tp, tn, fp, fn in zip(experiment_results["test_tp"],
                                                                                                                                       experiment_results["test_tn"],
@@ -70,44 +70,45 @@ if __name__ == "__main__":
                         print(experiment_results.keys())
                         print(f"fuckedup {result.resolve()}")
                     except ZeroDivisionError:
-                        pass
+                        is_nan = True
                 # prepare results to print
                 TO_PRINT = " ".join([f"{num:.4f}" for num in best_uar])
                 # print the BEST UAR for each split and MEAN of BEST UAR
                 # print(f"The best UAR for each split: {TO_PRINT}")
                 # print(f"Mean uar: {np.mean(best_uar)}")
-                if dataset.name == "men":
-                    historical_best_men.append(np.mean(best_uar))
-                    if np.mean(best_mcc["mcc"]) > best_men["mcc"]:
-                        best_men["mcc"] = np.mean(best_mcc["mcc"])
-                        best_men["mcc_std"] = np.std(best_mcc["mcc"])
-                        best_men["sensitivity"] = np.mean(best_mcc["sensitivity"])
-                        best_men["sensitivity_std"] = np.std(best_mcc["sensitivity"])
-                        best_men["specificity"] = np.mean(best_mcc["specificity"])
-                        best_men["specificity_std"] = np.std(best_mcc["specificity"])
-                        best_men["bm"] = np.mean(best_mcc["bm"])
-                        best_men["bm_std"] = np.std(best_mcc["bm"])
-                        best_men["gm"] = np.mean(best_mcc["gm"])
-                        best_men["gm_std"] = np.std(best_mcc["gm"])
-                        best_men["uar"] = np.mean(best_mcc["uar"])
-                        best_men["uar_std"] = np.std(best_mcc["uar"])
-                        best_men["architecture"] = arch_result.name
-                else:
-                    historical_best_women.append(np.mean(best_uar))
-                    if np.mean(best_mcc["mcc"]) > best_women["mcc"]:
-                        best_women["mcc"] = np.mean(best_mcc["mcc"])
-                        best_women["mcc_std"] = np.std(best_mcc["mcc"])
-                        best_women["sensitivity"] = np.mean(best_mcc["sensitivity"])
-                        best_women["sensitivity_std"] = np.std(best_mcc["sensitivity"])
-                        best_women["specificity"] = np.mean(best_mcc["specificity"])
-                        best_women["specificity_std"] = np.std(best_mcc["specificity"])
-                        best_women["bm"] = np.mean(best_mcc["bm"])
-                        best_women["bm_std"] = np.std(best_mcc["bm"])
-                        best_women["gm"] = np.mean(best_mcc["gm"])
-                        best_women["gm_std"] = np.std(best_mcc["gm"])
-                        best_women["uar"] = np.mean(best_mcc["uar"])
-                        best_women["uar_std"] = np.std(best_mcc["uar"])
-                        best_women["architecture"] = arch_result.name
+                if not is_nan:
+                    if dataset.name == "men":
+                        historical_best_men.append(np.mean(best_uar))
+                        if np.mean(best_mcc["mcc"]) > best_men["mcc"]:
+                            best_men["mcc"] = np.mean(best_mcc["mcc"])
+                            best_men["mcc_std"] = np.std(best_mcc["mcc"])
+                            best_men["sensitivity"] = np.mean(best_mcc["sensitivity"])
+                            best_men["sensitivity_std"] = np.std(best_mcc["sensitivity"])
+                            best_men["specificity"] = np.mean(best_mcc["specificity"])
+                            best_men["specificity_std"] = np.std(best_mcc["specificity"])
+                            best_men["bm"] = np.mean(best_mcc["bm"])
+                            best_men["bm_std"] = np.std(best_mcc["bm"])
+                            best_men["gm"] = np.mean(best_mcc["gm"])
+                            best_men["gm_std"] = np.std(best_mcc["gm"])
+                            best_men["uar"] = np.mean(best_mcc["uar"])
+                            best_men["uar_std"] = np.std(best_mcc["uar"])
+                            best_men["architecture"] = arch_result.name
+                    else:
+                        historical_best_women.append(np.mean(best_uar))
+                        if np.mean(best_mcc["mcc"]) > best_women["mcc"]:
+                            best_women["mcc"] = np.mean(best_mcc["mcc"])
+                            best_women["mcc_std"] = np.std(best_mcc["mcc"])
+                            best_women["sensitivity"] = np.mean(best_mcc["sensitivity"])
+                            best_women["sensitivity_std"] = np.std(best_mcc["sensitivity"])
+                            best_women["specificity"] = np.mean(best_mcc["specificity"])
+                            best_women["specificity_std"] = np.std(best_mcc["specificity"])
+                            best_women["bm"] = np.mean(best_mcc["bm"])
+                            best_women["bm_std"] = np.std(best_mcc["bm"])
+                            best_women["gm"] = np.mean(best_mcc["gm"])
+                            best_women["gm_std"] = np.std(best_mcc["gm"])
+                            best_women["uar"] = np.mean(best_mcc["uar"])
+                            best_women["uar_std"] = np.std(best_mcc["uar"])
+                            best_women["architecture"] = arch_result.name
         print(f"--------------------------------{res.name}-----------------------------")
         print(f"BEST WOMEN: {np.max(historical_best_women)}")
         print(f"BEST MEN: {np.max(historical_best_men)}")
