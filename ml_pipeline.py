@@ -135,10 +135,13 @@ def main(sex: str = "women",
                 header = True
 
             # dump gridsearch results to a results.csv
+            print(pd.DataFrame(grid_search.cv_results_))
+
             pd.DataFrame(grid_search.cv_results_).round(6)[
-                ["params", "mean_test_accuracy", "mean_test_recall", "mean_test_specificity",
-                 "mean_test_mcc", "mean_test_gm", "mean_test_uar", "mean_test_bm"]].to_csv(
-                results_file.joinpath("results.csv"),
+                ["params", "mean_test_accuracy", "std_test_accuracy", "mean_test_recall", "std_test_recall",
+                 "mean_test_specificity", "std_test_specificity", "mean_test_mcc", "std_test_mcc",
+                 "mean_test_gm", "std_test_gm", "mean_test_uar", "std_test_uar", "mean_test_bm", "std_test_bm"]
+                 ].to_csv(results_file.joinpath("results.csv"),
                 index=False, mode="a",
                 header=header, encoding="utf8", lineterminator="\n")
         #checksuming_results()
