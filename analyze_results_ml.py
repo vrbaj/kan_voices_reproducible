@@ -15,9 +15,12 @@ if __name__ == "__main__":
 
             best = to_process[to_process.mean_test_mcc == to_process.mean_test_mcc.max()].iloc[0]
             cls_params[f"{classifier}_{sex}"] = best.params
-            best.params = classifier
+            best["classifier"] = classifier
+            best = best.drop(["params", "mean_test_accuracy", "std_test_accuracy"])
             results[sex].append(best)
 
     print(pd.DataFrame(results["men"]).reset_index(drop=True))
     print(pd.DataFrame(results["women"]).reset_index(drop=True))
     print(cls_params)
+
+    pd.DataFrame(results["men"]).reset_index(drop=True).reset_index(drop=True).transpose().to_latex("ml_results_men.tex")
