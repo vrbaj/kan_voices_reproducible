@@ -91,7 +91,7 @@ if __name__ == "__main__":
     # TODO
     # 4. run svm_pipeline.py
     sexes = ["women", "men"]
-    classifiers = ["svm_poly", "svm_rbf", "gauss_nb", "knn", "random_forest", "adaboost"]
+    classifiers = ["adaboost"] # "svm_poly", "svm_rbf", "gauss_nb", "knn", "random_forest",
     for sex in sexes:
         for classifier in classifiers:
             classifier_pipeline(sex=sex, classifier=classifier)
