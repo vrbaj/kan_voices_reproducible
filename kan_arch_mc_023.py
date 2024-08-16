@@ -328,7 +328,7 @@ for k in evaluated_ks:
                 torch.manual_seed(0)
 
                 # create results directory for each dataset and evaluated architecture
-                result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", "")).replace("[", "").replace("]", "")
+                result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", "").replace("[", "").replace("]", ""))
                 result_dir.mkdir(parents=True, exist_ok=True)
                 # Monte Carlo cross-validation = split train/test 10 times
                 print(f"evaluating {str(arch)}")
