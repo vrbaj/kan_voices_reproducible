@@ -11,10 +11,10 @@ def calculate_mcc(tps, tns, fps, fns):
 
 
 # Ablation study - freezing grid and degree for KAN
-SEXES = ["men", "women"]
-BEST_ARCHS = ["115_333_2", "126_365_2"]
-BEST_GRIDS = [2, 2]
-BEST_DEGREES = [3, 3]
+SEXES = ["women", "men"]
+BEST_ARCHS = ["126_89_2", "115_150_127"]
+BEST_GRIDS = [5, 5]
+BEST_DEGREES = [3, 5]
 # best_arch = "126_365_2"
 # best_grid = 2
 # best_k = 3
@@ -22,11 +22,11 @@ for sex, best_arch, best_grid, best_k in zip(SEXES, BEST_ARCHS, BEST_GRIDS, BEST
     for param in ["grid", "degree"]:
         info = {"param": [], "mcc": []}
         if param == "grid":
-            list_paths = list(Path(".").resolve().parents[0].glob(f"results_mc_lamb0.001_g{best_grid}_k*/training_data/{sex}/*{best_arch}*"))
+            list_paths = list(Path(".").resolve().parents[0].glob(f"results_mc_lamb0.001_g{best_grid}_k*/training_data/{sex}/*{best_arch}?"))
             best_param = best_k
             other_param = "degree"
         else:
-            list_paths = list(Path(".").resolve().parents[0].glob(f"results_mc_lamb0.001_g*_k{best_k}/training_data/{sex}/*{best_arch}*"))
+            list_paths = list(Path(".").resolve().parents[0].glob(f"results_mc_lamb0.001_g*_k{best_k}/training_data/{sex}/*{best_arch}?"))
             best_param = best_grid
             other_param = "grid"
         # Iterate through experiments

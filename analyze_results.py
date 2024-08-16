@@ -92,7 +92,7 @@ if __name__ == "__main__":
                             best_men["gm_std"] = np.std(best_mcc["gm"])
                             best_men["uar"] = np.mean(best_mcc["uar"])
                             best_men["uar_std"] = np.std(best_mcc["uar"])
-                            best_men["architecture"] = arch_result.name
+                            best_men["architecture"] = arch_result.resolve()
                     else:
                         historical_best_women.append(np.mean(best_uar))
                         if np.mean(best_mcc["mcc"]) > best_women["mcc"]:
@@ -108,7 +108,7 @@ if __name__ == "__main__":
                             best_women["gm_std"] = np.std(best_mcc["gm"])
                             best_women["uar"] = np.mean(best_mcc["uar"])
                             best_women["uar_std"] = np.std(best_mcc["uar"])
-                            best_women["architecture"] = arch_result.name
+                            best_women["architecture"] = arch_result.resolve()
         print(f"--------------------------------{res.name}-----------------------------")
         print(f"BEST WOMEN: {np.max(historical_best_women)}")
         print(f"BEST MEN: {np.max(historical_best_men)}")
