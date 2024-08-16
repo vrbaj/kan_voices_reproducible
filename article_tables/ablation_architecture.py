@@ -26,7 +26,7 @@ for sex, best_arch, best_grid, best_k in zip(SEXES, BEST_ARCHS, BEST_GRIDS, BEST
             best_param = best_k
             other_param = "degree"
         else:
-            list_paths = list(Path(".").glob(f"results_mc_lamb0.001_g*_k{best_k}/training_data/{sex}/*{best_arch}*"))
+            list_paths = list(Path(".").resolve().parents[0].glob(f"results_mc_lamb0.001_g*_k{best_k}/training_data/{sex}/*{best_arch}*"))
             best_param = best_grid
             other_param = "grid"
         # Iterate through experiments
