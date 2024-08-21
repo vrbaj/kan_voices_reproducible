@@ -8,7 +8,7 @@ from sklearn.feature_selection import SelectKBest, SelectPercentile, mutual_info
 from sklearn.preprocessing import MinMaxScaler
 
 # path to training datasets
-datasets = Path("", "training_data", "women")
+datasets = Path("", "training_data", "men")
 # select computational device -> changed to CPU as it is faster for small datasets (as SVD)
 DEVICE = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # torch.set_default_device(DEVICE)

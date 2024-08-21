@@ -1,0 +1,1 @@
+{"sex": 1, "diff_pitch": true, "stdev_f0": true, "mfcc": 20, "var_mfcc": true, "spectral_centroid": true, "spectral_contrast": true, "spectral_flatness": true, "spectral_rolloff": true, "zero_crossing_rate": true, "formants": true, "lfcc": true, "skewness": true, "shannon_entropy": true}
