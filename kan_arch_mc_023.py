@@ -1,34 +1,37 @@
 """
 KAN arch search script.
 """
+import os
 import pickle
 import random
 from pathlib import Path
+
 import torch
 import numpy as np
 from kan import KAN
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.utils.class_weight import compute_class_weight
+
+from imblearn.over_sampling import SMOTE, KMeansSMOTE
+from imblearn.base import BaseSampler
+from sklearn.model_selection import  StratifiedKFold
 from sklearn.preprocessing import MinMaxScaler
 
 
-from imblearn.over_sampling import SMOTE, KMeansSMOTE, SVMSMOTE
-from imblearn.base import BaseSampler
-
 N_SEED = 42
-
-import os
 
 # Set the CUBLAS_WORKSPACE_CONFIG environment variable
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 def set_seed(seed):
+    """
+    Function to set seed for reproducibility.
+    :param seed:
+    :return:
+    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    #torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    #torch.use_deterministic_algorithms(True)
+
 
 
 
@@ -47,6 +50,7 @@ class CustomSMOTE(BaseSampler):
         self.kmeans_smote = KMeansSMOTE(**self.kmeans_args)
         self.smote = SMOTE(**self.smote_args)
 
+    # pylint:disable=broad-exception-caught,invalid-name
     def _fit_resample(self, X, y):
         resample_try = 0
         while resample_try < 10:
@@ -152,9 +156,7 @@ datasets = Path("", "training_data")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
-# evaluated_ks = [3, 4, 5, 6]
-# evaluated_ks = [3, 4] # blade 4
-# evaluated_ks = [5] # blade 1
+
 evaluated_ks = [3, 4, 5, 6]
 evaluated_grids = [3, 4, 5, 6, 7, 8]
 for k in evaluated_ks:
@@ -171,154 +173,13 @@ for k in evaluated_ks:
             # get the number of features
             input_size = X.shape[1]
             # define KAN architecture
-            # kan_archs = [
-            #     # [input_size, input_size * 2 + int(0.9 * input_size), 2],
-            #     # [input_size, input_size * 2 + int(0.8 * input_size), 2],
-            #     # [input_size, input_size * 2 + int(0.7 * input_size), 2],
-            #     # [input_size, input_size * 2 + int(0.6 * input_size), 2],
-            #     # [input_size, input_size * 2 + int(0.5 * input_size), 2],
-            #     # [input_size, input_size * 2 + int(0.4 * input_size), 2],
-            #     # [input_size, input_size * 2 + int(0.3 * input_size), 2],
-            #     # [input_size, input_size * 2 + int(0.2 * input_size), 2],
-            #     # [input_size, input_size * 2 + int(0.1 * input_size), 2],
-            #     # [input_size, input_size * 2, 2],
-            #     # [input_size, input_size * 2 - int(0.1 * input_size), 2],
-            #     # [input_size, input_size * 2 - int(0.2 * input_size), 2],
-            #     # [input_size, input_size * 2 - int(0.3 * input_size), 2],
-            #     # [input_size, input_size * 2 - int(0.4 * input_size), 2],
-            #     # [input_size, input_size * 2 - int(0.5 * input_size), 2],
-            #     # [input_size, input_size * 2 - int(0.6 * input_size), 2],
-            #     # [input_size, input_size * 2 - int(0.7 * input_size), 2],
-            #     # [input_size, input_size * 2 - int(0.8 * input_size), 2],
-            #     # [input_size, input_size * 2 - int(0.9 * input_size), 2],
-            #     # [input_size, input_size, 2],
-            #     # [input_size, input_size - int(0.1 * input_size), 2],
-            #     # [input_size, input_size - int(0.2 * input_size), 2],
-            #     # [input_size, input_size - int(0.3 * input_size), 2],
-            #     # [input_size, input_size - int(0.4 * input_size), 2],
-            #     # [input_size, input_size - int(0.5 * input_size), 2],
-            #     # [input_size, input_size - int(0.6 * input_size), 2],
-            #     # [input_size, input_size - int(0.7 * input_size), 2],
-            #     # [input_size, input_size - int(0.8 * input_size), 2],
-            #     # [input_size, input_size - int(0.9 * input_size), 2],
-            #
-            #     [input_size, input_size * 2, input_size, 2],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size, 2],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), input_size, 2],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), input_size, 2],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), input_size, 2],
-            #     [input_size, input_size * 2 - int(0.5 * input_size), input_size, 2],
-            #     [input_size, input_size * 2 - int(0.6 * input_size), input_size, 2],
-            #     [input_size, input_size * 2 - int(0.7 * input_size), input_size, 2],
-            #     [input_size, input_size * 2 - int(0.8 * input_size), input_size, 2],
-            #     [input_size, input_size * 2 - int(0.9 * input_size), input_size, 2],
-            #
-            #     [input_size, input_size * 2, input_size - int(0.1 * input_size), 2],
-            #     [input_size, input_size * 2, input_size - int(0.2 * input_size), 2],
-            #     [input_size, input_size * 2, input_size - int(0.3 * input_size), 2],
-            #     [input_size, input_size * 2, input_size - int(0.4 * input_size), 2],
-            #     [input_size, input_size * 2, input_size - int(0.5 * input_size), 2],
-            #     [input_size, input_size * 2, input_size - int(0.6 * input_size), 2],
-            #     [input_size, input_size * 2, input_size - int(0.7 * input_size), 2],
-            #     [input_size, input_size * 2, input_size - int(0.8 * input_size), 2],
-            #     [input_size, input_size * 2, input_size - int(0.9 * input_size), 2],
-            #
-            #     [input_size, input_size, input_size - int(0.1 * input_size), 2],
-            #     [input_size, input_size, input_size - int(0.2 * input_size), 2],
-            #     [input_size, input_size, input_size - int(0.3 * input_size), 2],
-            #     [input_size, input_size, input_size - int(0.4 * input_size), 2],
-            #     [input_size, input_size, input_size - int(0.5 * input_size), 2],
-            #     [input_size, input_size, input_size - int(0.6 * input_size), 2],
-            #     [input_size, input_size, input_size - int(0.7 * input_size), 2],
-            #     [input_size, input_size, input_size - int(0.8 * input_size), 2],
-            #     [input_size, input_size, input_size - int(0.9 * input_size), 2],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.1 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.2 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.3 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.4 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.5 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), input_size - int(0.9 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.3 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.4 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.5 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), input_size - int(0.9 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.4 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.5 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), input_size - int(0.9 * input_size)],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.5 * input_size)],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), input_size - int(0.9 * input_size)],
-            #     [input_size, input_size * 2 - int(0.5 * input_size), input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.5 * input_size), input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.5 * input_size), input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.5 * input_size), input_size - int(0.9 * input_size)],
-            #     [input_size, input_size * 2 - int(0.6 * input_size), input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.6 * input_size), input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.6 * input_size), input_size - int(0.9 * input_size)],
-            #     [input_size, input_size * 2 - int(0.7 * input_size), input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.7 * input_size), input_size - int(0.9 * input_size)],
-            #     [input_size, input_size * 2 - int(0.8 * input_size), input_size - int(0.9 * input_size)],
-            #
-            #     [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.2 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.3 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.4 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.5 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.1 * input_size), 2 * input_size - int(0.9 * input_size)],
-            #
-            #     [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.3 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.4 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.5 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.2 * input_size), 2 * input_size - int(0.9 * input_size)],
-            #
-            #     [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.4 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.5 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.3 * input_size), 2 * input_size - int(0.9 * input_size)],
-            #
-            #     [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.5 * input_size)],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.4 * input_size), 2 * input_size - int(0.9 * input_size)],
-            #
-            #     [input_size, input_size * 2 - int(0.5 * input_size), 2 * input_size - int(0.6 * input_size)],
-            #     [input_size, input_size * 2 - int(0.5 * input_size), 2 * input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.5 * input_size), 2 * input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.5 * input_size), 2 * input_size - int(0.9 * input_size)],
-            #
-            #     [input_size, input_size * 2 - int(0.6 * input_size), 2 * input_size - int(0.7 * input_size)],
-            #     [input_size, input_size * 2 - int(0.6 * input_size), 2 * input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.6 * input_size), 2 * input_size - int(0.9 * input_size)],
-            #
-            #     [input_size, input_size * 2 - int(0.7 * input_size), 2 * input_size - int(0.8 * input_size)],
-            #     [input_size, input_size * 2 - int(0.7 * input_size), 2 * input_size - int(0.9 * input_size)],
-            #
-            #     [input_size, input_size * 2 - int(0.8 * input_size), 2 * input_size - int(0.9 * input_size)],
-            # ]
             steps = list(np.linspace(0, 2, 21))
             kan_archs = []
             for first in steps:
+                first_layer = input_size * 2 - int(first * input_size)
+                if first_layer > 0:
+                    kan_archs.append([input_size, first_layer, 2])
                 for second in steps:
-                    first_layer = input_size * 2 - int(first * input_size)
                     second_layer = input_size * 2 - int(second * input_size)
                     if first_layer >= second_layer > 0:
                         kan_archs.append([input_size, first_layer, second_layer, 2])
@@ -328,7 +189,9 @@ for k in evaluated_ks:
                 torch.manual_seed(0)
 
                 # create results directory for each dataset and evaluated architecture
-                result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", "").replace("[", "").replace("]", ""))
+                result_dir = results_path.joinpath(str(arch).replace(
+                    ",", "_").replace(" ", "").replace(
+                    "[", "").replace("]", ""))
                 result_dir.mkdir(parents=True, exist_ok=True)
                 # Monte Carlo cross-validation = split train/test 10 times
                 print(f"evaluating {str(arch)}")
@@ -339,7 +202,8 @@ for k in evaluated_ks:
                     X_train, X_test = X[train_index], X[test_index]
                     y_train, y_test = y[train_index], y[test_index]
                     # KMeansSMOTE resampling. if fails 10x SMOTE resampling
-                    X_resampled, y_resampled = CustomSMOTE(kmeans_args={"random_state": N_SEED}).fit_resample(X_train, y_train)
+                    X_resampled, y_resampled = CustomSMOTE(
+                        kmeans_args={"random_state": N_SEED}).fit_resample(X_train, y_train)
                     # MinMaxScaling
                     scaler = MinMaxScaler(feature_range=(-1, 1))
                     X_train_scaled = scaler.fit_transform(X_resampled)
@@ -350,28 +214,25 @@ for k in evaluated_ks:
                                "train_label": torch.from_numpy(y_resampled).type(
                                    torch.LongTensor).to(DEVICE),
                                "test_input": torch.from_numpy(X_test_scaled).to(DEVICE),
-                               "test_label": torch.from_numpy(y_test).type(torch.LongTensor).to(DEVICE)}
-                    # feature dimension sanity check
-                    # print(dataset["train_input"].dtype)
+                               "test_label": torch.from_numpy(y_test).type(
+                                   torch.LongTensor).to(DEVICE)}
+
                     # create KAN model
-                    model = KAN(width=arch, grid=grid, k=k, seed=N_SEED, auto_save=False, save_act=True)
-                    # speed upt
-                    # model = model.speed()
+                    model = KAN(width=arch, grid=grid, k=k, seed=N_SEED,
+                                auto_save=False, save_act=True)
                     # load model to device
                     model.to(DEVICE)
-                    # although the dataset is balanced, KAN tends to overfit to unhealthy...
-                    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
-                    # generally it should be hyperparameter to optimize
-                    class_weights = torch.tensor(class_weights, dtype=torch.float64).to(DEVICE)
                     # train model
-                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=20, batch=-1, update_grid=True,
-                                        metrics=(train_acc, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar),
+                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=20, batch=-1,
+                                        update_grid=True, metrics=(train_acc, test_acc, test_tn,
+                                                                   test_tp, test_fn, test_fp,
+                                                                   test_uar),
                                         loss_fn=torch.nn.CrossEntropyLoss())
                     # infotainment during training
                     print(f"final test acc: {results['test_acc'][-1]}"
                           f" mean test acc: {np.mean(results['test_acc'])}",
                           f"best test uar: {np.max(results["test_uar"])} ")
-                    # TODO: add metrics for imbalanced datasets
+
                     # dump results
                     with open(result_dir.joinpath(f'kan_res_{idx}.pickle'), "wb") as output_file:
                         pickle.dump(results, output_file)
