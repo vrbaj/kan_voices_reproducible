@@ -169,11 +169,11 @@ for k in evaluated_ks:
             X = np.array(dataset_file["data"])
             y = np.array(dataset_file["labels"])
             # path where to store results
-            results_path = Path(".", f"results_2layer_lamb0.001_g{grid}_k{k}", dataset)
+            results_path = Path(".", f"results_2layer_lamb0.001_g{grid}_k{k}_60epochs", dataset)
             # get the number of features
             input_size = X.shape[1]
             # define KAN architecture
-            steps = list(np.linspace(0, 2, 21))
+            steps = list(np.linspace(0, 2, 11))
             kan_archs = []
             for first in steps:
                 first_layer = input_size * 2 - int(first * input_size)
@@ -223,7 +223,7 @@ for k in evaluated_ks:
                     # load model to device
                     model.to(DEVICE)
                     # train model
-                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=20, batch=-1,
+                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=60, batch=-1,
                                         update_grid=True, metrics=(train_acc, test_acc, test_tn,
                                                                    test_tp, test_fn, test_fp,
                                                                    test_uar),
