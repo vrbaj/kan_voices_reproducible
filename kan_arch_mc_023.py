@@ -158,7 +158,7 @@ torch.set_default_device(DEVICE)
 print(f"The {DEVICE} will be used for the computation..")
 
 evaluated_ks = [3, 4, 5, 6]
-evaluated_grids = [3, 4, 5, 6, 7, 8]
+evaluated_grids = [5, 6, 7, 8]
 for k in evaluated_ks:
     for grid in evaluated_grids:
         for dataset in datasets.iterdir():
@@ -169,7 +169,7 @@ for k in evaluated_ks:
             X = np.array(dataset_file["data"])
             y = np.array(dataset_file["labels"])
             # path where to store results
-            results_path = Path(".", f"results_2layer_lamb0.001_g{grid}_k{k}_60epochs", dataset)
+            results_path = Path(".", f"results_2layer_lamb0.001_g{grid}_k{k}_100epochs", dataset)
             # get the number of features
             input_size = X.shape[1]
             # define KAN architecture
@@ -223,7 +223,7 @@ for k in evaluated_ks:
                     # load model to device
                     model.to(DEVICE)
                     # train model
-                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=60, batch=-1,
+                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=100, batch=-1,
                                         update_grid=True, metrics=(train_acc, test_acc, test_tn,
                                                                    test_tp, test_fn, test_fp,
                                                                    test_uar),
