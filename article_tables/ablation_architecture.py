@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 
 SEXES = ["women", "men"]
-BEST_ARCHS = ["126_89_2", "115_150_127"]
+BEST_ARCHS = ["126_51_2", "115-184-138-2"]
 BEST_GRIDS = [5, 5]
 BEST_DEGREES = [3, 5]
 
