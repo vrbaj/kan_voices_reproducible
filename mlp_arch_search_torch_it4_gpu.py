@@ -131,7 +131,7 @@ for dataset in datasets.iterdir():
     X = np.array(dataset_file["data"])
     y = np.array(dataset_file["labels"])
     # path where to store results
-    results_path = Path(".", "results_mlp", dataset)
+    results_path = Path(".", "results_mlp_it4", dataset)
     # get the number of features
     input_size = X.shape[1]
     # define KAN architecture
@@ -150,7 +150,7 @@ for dataset in datasets.iterdir():
             if first_layer >= second_layer > 0:
                 mlp_archs.append([input_size, first_layer, second_layer, 2])
     print(mlp_archs)
-    raise Exception
+
     for arch in mlp_archs:
         best_uar = []
         set_seed(N_SEED)
