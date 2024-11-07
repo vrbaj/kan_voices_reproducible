@@ -1,19 +1,31 @@
 import pickle
 from pathlib import Path
+import random
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import confusion_matrix
 from matplotlib import pyplot as plt
-
-from imblearn.over_sampling import SMOTE, KMeansSMOTE, SVMSMOTE
+from imblearn.over_sampling import SMOTE, KMeansSMOTE
 from imblearn.base import BaseSampler
 from torch.utils.data import DataLoader, TensorDataset
 
-import numpy as np
+
+# Set seeds for reproducibility
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+set_seed(42)  # You can choose any number you prefer
+
 
 class CustomSMOTE(BaseSampler):
     """Class that implements KMeansSMOTE oversampling. Due to initialization of KMeans
@@ -35,11 +47,12 @@ class CustomSMOTE(BaseSampler):
                 X_res, y_res = self.kmeans_smote.fit_resample(X, y)
                 return X_res, y_res
             except Exception:
-                # dont care about exception, KmeansSMOTE failed
+                # don't care about exception, KMeansSMOTE failed
                 self.kmeans_smote = KMeansSMOTE(random_state=resample_try)
                 resample_try += 1
         X_res, y_res = self.smote.fit_resample(X, y)
         return X_res, y_res
+
 
 # Define the MLP model
 class MLP(nn.Module):
@@ -55,14 +68,8 @@ class MLP(nn.Module):
     def forward(self, x):
         return self.network(x)
 
-def train_and_evaluate(model, train_loader, val_loader, epochs):
-    def closure():
-        optimizer.zero_grad()
-        outputs = model(train_loader.dataset.tensors[0])
-        loss = criterion(outputs.squeeze(), train_loader.dataset.tensors[1])
-        loss.backward()
-        return loss
 
+def train_and_evaluate(model, train_loader, val_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.LBFGS(model.parameters())
     best_val_acc = 0
@@ -76,15 +83,23 @@ def train_and_evaluate(model, train_loader, val_loader, epochs):
         # Training phase
         model.train()
 
+        def closure():
+            optimizer.zero_grad()
+            outputs = model(train_loader.dataset.tensors[0].to(device))
+            loss = criterion(outputs.squeeze(), train_loader.dataset.tensors[1].to(device))
+            loss.backward()
+            return loss
+
         loss = optimizer.step(closure)
         loss_values.append(loss.cpu().detach().numpy())
+
         # Validation phase
         model.eval()
         val_predictions = []
         val_targets = []
         with torch.no_grad():
             for batch_x, batch_y in val_loader:
-                outputs = model(batch_x).squeeze()
+                outputs = model(batch_x.to(device)).squeeze()
                 predictions = torch.sigmoid(outputs) > 0.5
                 val_predictions.extend(predictions.cpu().numpy())
                 val_targets.extend(batch_y.cpu().numpy())
@@ -100,14 +115,13 @@ def train_and_evaluate(model, train_loader, val_loader, epochs):
     metrics["loss"] = loss_values
     return metrics
 
+
 N_SEED = 42
 datasets = Path("", "training_data")
-# select computational device -> changed to CPU as it is faster for small datasets (as SVD)
-DEVICE = "cpu" # torch.device("cuda" if torch.cuda.is_available() else "cpu")
-torch.set_default_device(DEVICE)
+# select computational device
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"The {DEVICE} will be used for the computation..")
 torch.set_default_dtype(torch.float64)
-
 
 for dataset in datasets.iterdir():
     print(f"evaluating dataset {dataset}")
@@ -122,45 +136,31 @@ for dataset in datasets.iterdir():
     input_size = X.shape[1]
     # define KAN architecture
 
-
     # Define the architecture variations
-    mlp_archs = [
-        [input_size, input_size * 2 - int(0.1 * input_size)],
-        [input_size, input_size * 2 - int(0.2 * input_size)],
-        [input_size, input_size * 2 - int(0.3 * input_size)],
-        [input_size, input_size * 2 - int(0.4 * input_size)],
-        [input_size, input_size * 2 - int(0.5 * input_size)],
-        [input_size, input_size * 2 - int(0.6 * input_size)],
-        [input_size, input_size * 2 - int(0.7 * input_size)],
-        [input_size, input_size * 2 - int(0.8 * input_size)],
-        [input_size, input_size * 2 - int(0.9 * input_size)],
-        [input_size, input_size],
-        [input_size, input_size - int(0.1 * input_size)],
-        [input_size, input_size - int(0.2 * input_size)],
-        [input_size, input_size - int(0.3 * input_size)],
-        [input_size, input_size - int(0.4 * input_size)],
-        [input_size, input_size - int(0.5 * input_size)],
-        [input_size, input_size, input_size],
-        [input_size, input_size, input_size - int(0.1 * input_size)],
-        [input_size, input_size, input_size - int(0.2 * input_size)],
-        [input_size, input_size, input_size - int(0.3 * input_size)],
-        [input_size, input_size, input_size - int(0.4 * input_size)],
-        [input_size, input_size, input_size - int(0.5 * input_size)],
-        [input_size, input_size, input_size - int(0.6 * input_size)],
-        [input_size, input_size, input_size - int(0.7 * input_size)],
-        [input_size, input_size, input_size - int(0.8 * input_size)],
-        [input_size, input_size, input_size - int(0.9 * input_size)]
-    ]
+
+    # define KAN architecture
+    steps = list(np.linspace(0, 2, 21))
+    mlp_archs = []
+    for first in steps:
+        first_layer = input_size * 2 - int(first * input_size)
+        if first_layer > 0:
+            mlp_archs.append([input_size, first_layer, 2])
+        for second in steps:
+            second_layer = input_size * 2 - int(second * input_size)
+            if first_layer >= second_layer > 0:
+                mlp_archs.append([input_size, first_layer, second_layer, 2])
+    print(mlp_archs)
+    raise Exception
     for arch in mlp_archs:
         best_uar = []
-        torch.manual_seed(0)
+        set_seed(N_SEED)
 
         # create results directory for each dataset and evaluated architecture
         result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", ""))
         result_dir.mkdir(parents=True, exist_ok=True)
         # Monte Carlo cross-validation = split train/test 10 times
         print(f"evaluating {str(arch)}")
-        skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=32)
+        skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=N_SEED)
         idx = 0
         for train_index, test_index in skf.split(X, y):
             idx += 1
@@ -174,14 +174,16 @@ for dataset in datasets.iterdir():
             X_test_scaled = scaler.transform(X_test)
 
             # Create DataLoader for training and validation sets
-            train_dataset = TensorDataset(torch.from_numpy(X_train_scaled), torch.from_numpy(y_resampled).type(torch.float64))
-            val_dataset = TensorDataset(torch.from_numpy(X_test_scaled), torch.from_numpy(y_test).type(torch.float64))
+            train_dataset = TensorDataset(torch.from_numpy(X_train_scaled).to(DEVICE),
+                                          torch.from_numpy(y_resampled).type(torch.float64).to(DEVICE))
+            val_dataset = TensorDataset(torch.from_numpy(X_test_scaled).to(DEVICE),
+                                        torch.from_numpy(y_test).type(torch.float64).to(DEVICE))
             train_loader = DataLoader(train_dataset, batch_size=len(y_train), shuffle=True)
             val_loader = DataLoader(val_dataset, batch_size=len(y_test), shuffle=False)
 
             # create model
-            model = MLP(arch)
-            results = train_and_evaluate(model, train_loader, val_loader, 200)
+            model = MLP(arch).to(DEVICE)
+            results = train_and_evaluate(model, train_loader, val_loader, 200, DEVICE)
             best_uar.append(np.max(results["uar"]))
 
             with open(result_dir.joinpath(f'mlp_res_{idx}.pickle'), "wb") as output_file:

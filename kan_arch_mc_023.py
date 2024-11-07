@@ -155,13 +155,11 @@ datasets = Path("", "training_data")
 # select computational device -> changed to CPU as it is faster for small datasets (as SVD)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(DEVICE)
-print(f"The {DEVICE} will be used for the computation..")
-
-evaluated_ks = [3, 4, 5, 6]
-evaluated_grids = [5, 6, 7, 8]
+evaluated_ks = [3]
+evaluated_grids = [9]
 for k in evaluated_ks:
     for grid in evaluated_grids:
-        for dataset in datasets.iterdir():
+        for dataset in datasets.glob("men"):
             print(f"evaluating dataset {dataset}")
             # load dataset
             with open(dataset.joinpath("dataset_selected.pk"), "rb") as f:
@@ -169,7 +167,7 @@ for k in evaluated_ks:
             X = np.array(dataset_file["data"])
             y = np.array(dataset_file["labels"])
             # path where to store results
-            results_path = Path(".", f"results_2layer_lamb0.001_g{grid}_k{k}_100epochs", dataset)
+            results_path = Path(".", f"results_1layer_lamb0.001_g{grid}_k{k}_100epochs", dataset)
             # get the number of features
             input_size = X.shape[1]
             # define KAN architecture
@@ -179,10 +177,11 @@ for k in evaluated_ks:
                 first_layer = input_size * 2 - int(first * input_size)
                 if first_layer > 0:
                     kan_archs.append([input_size, first_layer, 2])
+                    pass
                 for second in steps:
                     second_layer = input_size * 2 - int(second * input_size)
                     if first_layer >= second_layer > 0:
-                        kan_archs.append([input_size, first_layer, second_layer, 2])
+                         kan_archs.append([input_size, first_layer, second_layer, 2])
 
             # iterate over KAN architectures and train for each dataset
             for arch in kan_archs:
