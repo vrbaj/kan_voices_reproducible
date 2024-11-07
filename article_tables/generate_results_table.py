@@ -1,12 +1,14 @@
 """
 This script handles generation of the latex table for the best performing datasets for each classifier and sex
 """
-
-import pandas as pd
 from pathlib import Path
+import pandas as pd
+
 
 
 SEXES = ["women", "men"]
+
+#TODO:
 BEST_MLP = {
         "women": {'mcc': 0.6940727550676049, 'sensitivity': 0.8722727272727273, 'specificity': 0.8186585365853659,
                   'gm': 0.8442666447422743, 'uar': 0.8454656319290466, 'bm': 0.6909312638580931,
@@ -145,7 +147,8 @@ def generate_table_with_configs(table, params):
         # Body - classifier settings
         body_classifier = ""
         for col in table[sex].columns:
-            cell = params[sex][col].replace("{", "").replace("}", "").replace("'", "").replace("classifier__", "").replace(", ", " \\\\ ").replace("_", "\\_")
+            cell = params[sex][col].replace("{", "").replace("}", "").replace("'", "")
+            cell = cell.replace("classifier__", "").replace(", ", " \\\\ ").replace("_", "\\_")
             body_classifier += (f"{col} & \\shortstack[l]{{{cell}}} \\\\\n"
                                 "\\midrule\n")
 
@@ -187,16 +190,16 @@ def generate_results_from_nn(best_results, index = "MLP"):
 
 if __name__ == "__main__":
     # Generate results from ML classifiers
-    table, params = best_dataset_for_each_clf()
+    table_all, params_all = best_dataset_for_each_clf()
     # Generate results from MLP
     table_mlp, params_mlp = generate_results_from_nn(BEST_MLP)
     # Generate results from KAN
     table_kan, params_kan = generate_results_from_nn(BEST_KAN, index="KAN")
     # Merge all results to one table
-    for sex in SEXES:
-        table[sex] = table[sex].join([table_mlp[sex], table_kan[sex]])
-        params[sex]["MLP"] = params_mlp[sex]
-        params[sex]["KAN"] = params_kan[sex]
+    for current_sex in SEXES:
+        table_all[current_sex] = table_all[current_sex].join([table_mlp[current_sex], table_kan[current_sex]])
+        params_all[current_sex]["MLP"] = params_mlp[current_sex]
+        params_all[current_sex]["KAN"] = params_kan[current_sex]
     # Generate tables
-    generate_table_with_results(table)
-    generate_table_with_configs(table, params)
+    generate_table_with_results(table_all)
+    generate_table_with_configs(table_all, params_all)
