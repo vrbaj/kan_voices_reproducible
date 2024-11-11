@@ -4,42 +4,19 @@ This script handles generation of the latex table for the best performing datase
 from pathlib import Path
 import pandas as pd
 
+from ..analyze_results_kan import main as get_best_kan
+from ..analyze_results_mlp import main as get_best_mlp
+
 
 
 SEXES = ["women", "men"]
 
-#TODO:
-BEST_MLP = {
-        "women": {'mcc': 0.6940727550676049, 'sensitivity': 0.8722727272727273, 'specificity': 0.8186585365853659,
-                  'gm': 0.8442666447422743, 'uar': 0.8454656319290466, 'bm': 0.6909312638580931,
-                  'mcc_std': 0.09287098007890512, 'sensitivity_std': 0.05836687146779787,
-                  'specificity_std': 0.056978240834672324, 'bm_std': 0.08929959941394419, 'gm_std': 0.0443615870884772,
-                  'uar_std': 0.044649799706972096, 'architecture': '[126_215_126]'},
-        "men": {'mcc': 0.6448697777023891, 'sensitivity': 0.8352525252525252, 'specificity': 0.8215384615384617,
-                'gm': 0.82699808623235, 'uar': 0.8283954933954935, 'bm': 0.6567909867909869,
-                'mcc_std': 0.08954504365184816, 'sensitivity_std': 0.03194523295229973,
-                'specificity_std': 0.089463886469617, 'bm_std': 0.09677573885992274, 'gm_std': 0.04936465669621001,
-                'uar_std': 0.04838786942996137, 'architecture': '[115_219_173]'}
-    }
-
-BEST_KAN = {
-    "women": {'mcc': 0.7164649843741262, 'sensitivity': 0.8830194805194805, 'specificity': 0.8309146341463416,
-              'gm': 0.8560258569690833, 'uar': 0.8569670573329109, 'bm': 0.713934114665822,
-              'mcc_std': 0.0667263464453132, 'sensitivity_std': 0.043284481515014295,
-              'specificity_std': 0.04543894092918771, 'bm_std': 0.06430668185386339, 'gm_std': 0.03212621389792792,
-              'uar_std': 0.032153340926931694, 'architecture': '[126_89_2]'},
-    "men": {'mcc': 0.6628184433094418, 'sensitivity': 0.8614567602939696, 'specificity': 0.804923076923077,
-            'gm': 0.8317785565599813, 'uar': 0.8331899186085232, 'bm': 0.6663798372170466,
-            'mcc_std': 0.1225847591513746, 'sensitivity_std': 0.05410395535716146,
-            'specificity_std': 0.08731308014551452, 'bm_std': 0.12332383365464128, 'gm_std': 0.06228833741357129,
-            'uar_std': 0.06166191682732064, 'architecture': '[115_173_127]'}
-    }
 
 def best_dataset_for_each_clf():
     """
-    Creating a latex table from all results for a single gender to report the best performing datasets for each classifier type
-    param sex: men or women, selection of what kind of results should be reported
-    return result_merged: Table with both the best results for each classifier and the dataset configuration
+    Creating a latex table from all results for a single gender to report the best performing datasets for each classifier
+    :param sex: men or women, selection of what kind of results should be reported
+    :return result_merged: Table with both the best results for each classifier and the dataset configuration
     """
     results_path = Path(".").resolve().parents[0].joinpath("results")
     classifiers = [item.name for item in results_path.iterdir()]
@@ -124,10 +101,10 @@ def generate_table_with_results(table):
 
 def generate_table_with_configs(table, params):
     """
-       Generating a table with all the results for the article for a single gender to report the best performing datasets for each classifier
-       param table: Table with all the results for a single gender to report the best performing datasets for each classifier type
-       param params: Parameters for the classifier type
-       return None
+    Generating a table with all the results for the article for a single gender to report the best performing datasets for each classifier
+    param table: Table with all the results for a single gender to report the best performing datasets for each classifier type
+    param params: Parameters for the classifier type
+    return None
        """
     table_codes = []
     for sex in SEXES:
@@ -192,9 +169,11 @@ if __name__ == "__main__":
     # Generate results from ML classifiers
     table_all, params_all = best_dataset_for_each_clf()
     # Generate results from MLP
-    table_mlp, params_mlp = generate_results_from_nn(BEST_MLP)
+    best_mlp = get_best_mlp()
+    table_mlp, params_mlp = generate_results_from_nn(best_mlp)
     # Generate results from KAN
-    table_kan, params_kan = generate_results_from_nn(BEST_KAN, index="KAN")
+    best_kan = get_best_kan()
+    table_kan, params_kan = generate_results_from_nn(best_kan, index="KAN")
     # Merge all results to one table
     for current_sex in SEXES:
         table_all[current_sex] = table_all[current_sex].join([table_mlp[current_sex], table_kan[current_sex]])

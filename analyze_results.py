@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     historical_best_men = []
     historical_best_women = []
-    pickled_results_path = Path(".", "results_mlp_old", "training_data")
+    pickled_results_path = Path(".", "results_mlp", "training_data")
 
     for dataset in sorted(pickled_results_path.iterdir()):
         for arch_result in dataset.iterdir():
@@ -38,8 +38,6 @@ if __name__ == "__main__":
                     experiment_results = pickle.load(f)
                 # compute UAR
                 is_nan = False
-                print(experiment_results)
-                exit(0)
                 try:
                     mcc = [(tp * tn - fp * fn) / np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) for tp, tn, fp, fn in zip(experiment_results["tp"],
                                                                                                                                   experiment_results["tn"],
@@ -55,7 +53,7 @@ if __name__ == "__main__":
                     #            experiment_results["specificity"])]
                     # select best UAR for this train/test split
                     best_uar.append(np.max(experiment_results["uar"]))
-                    best_mcc["mcc"].append(np.nanmax(mcc))
+                    best_mcc["mcc"].append(np.max(mcc))
                     best_idx = np.argmax(mcc)
                     sensitivity = experiment_results["tp"][best_idx] / (experiment_results["tp"][best_idx] + experiment_results["fn"][best_idx])
                     specificity = experiment_results["tn"][best_idx] / (experiment_results["tn"][best_idx] + experiment_results["fp"][best_idx])
@@ -71,8 +69,7 @@ if __name__ == "__main__":
                     print(experiment_results.keys())
                     print(f"fuckedup {result.resolve()}")
                 except ZeroDivisionError:
-                    # is_nan = True
-                    pass
+                    is_nan = True
             # prepare results to print
             TO_PRINT = " ".join([f"{num:.4f}" for num in best_uar])
             # print the BEST UAR for each split and MEAN of BEST UAR
@@ -81,9 +78,7 @@ if __name__ == "__main__":
             if not is_nan:
                 if dataset.name == "men":
                     historical_best_men.append(np.mean(best_uar))
-                    print(f'nejlepsi vysledek {np.mean(best_mcc["mcc"])}')
                     if np.mean(best_mcc["mcc"]) > best_men["mcc"]:
-                        
                         best_men["mcc"] = np.mean(best_mcc["mcc"])
                         best_men["mcc_std"] = np.std(best_mcc["mcc"])
                         best_men["sensitivity"] = np.mean(best_mcc["sensitivity"])

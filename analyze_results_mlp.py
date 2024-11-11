@@ -8,7 +8,7 @@ import numpy as np
 
 def main():
     """
-    Main function to analyze results of KAN architecture search.
+    Main function to analyze results of MLP architecture search.
     :return: dict dictionary of best results, containing two dict for each sex
     """
     best_results = {
@@ -30,42 +30,42 @@ def main():
         }
     }
 
-    pickled_results_path = Path(".", "results_kan")
-    for kan_settings in sorted(pickled_results_path.iterdir()):
-        for dataset in sorted(kan_settings.joinpath("training_data").iterdir()):
-            sex = dataset.name
-            for arch_result in dataset.iterdir():
-                print(f"evaluating architecture {arch_result}")
-                best_metrics = {"mcc": [], "sensitivity": [], "specificity": [], "gm": [], "uar": [], "bm": []}
-                for result in arch_result.glob("*.pickle"):
-                    # read result for a single train/test split
-                    with open(result, "rb") as f:
-                        experiment_results = pickle.load(f)
-                    try:
-                        mcc = [(tp * tn - fp * fn) / np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+    pickled_results_path = Path(".", "results_mlp", "training_data")
+    for dataset in sorted(pickled_results_path.iterdir()):
+        sex = dataset.name
+        for arch_result in dataset.iterdir():
+            best_metrics = {"mcc": [], "sensitivity": [], "specificity": [], "gm": [], "uar": [], "bm": []}
+            for result in arch_result.glob("*.pickle"):
+                # read result for a single train/test split
+                with open(result, "rb") as f:
+                    experiment_results = pickle.load(f)
+                # compute UAR
+                is_nan = False
+                try:
+                    mcc = [(tp * tn - fp * fn) / np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
                             for tp, tn, fp, fn
                             in zip(experiment_results["test_tp"],
                                    experiment_results["test_tn"],
                                    experiment_results["test_fp"],
                                    experiment_results["test_fn"])]
-                        best_idx = np.argmax(mcc)
-                        sensitivity = experiment_results["test_tp"][best_idx] / (
-                                    experiment_results["test_tp"][best_idx] + experiment_results["test_fn"][best_idx])
-                        specificity = experiment_results["test_tn"][best_idx] / (
-                                    experiment_results["test_tn"][best_idx] + experiment_results["test_fp"][best_idx])
+                    best_idx = np.argmax(mcc)
+                    sensitivity = experiment_results["tp"][best_idx] / (experiment_results["tp"][best_idx] + experiment_results["fn"][best_idx])
+                    specificity = experiment_results["tn"][best_idx] / (experiment_results["tn"][best_idx] + experiment_results["fp"][best_idx])
 
-                        best_metrics["mcc"].append(np.max(mcc))
-                        best_metrics["sensitivity"].append(sensitivity)
-                        best_metrics["specificity"].append(specificity)
-                        best_metrics["gm"].append(np.sqrt(sensitivity * specificity))
-                        best_metrics["bm"].append(sensitivity + specificity - 1)
-                        best_metrics["uar"].append((sensitivity + specificity) / 2)
+                    best_metrics["mcc"].append(np.max(mcc))
+                    best_metrics["sensitivity"].append(sensitivity)
+                    best_metrics["specificity"].append(specificity)
+                    best_metrics["gm"].append(np.sqrt(sensitivity * specificity))
+                    best_metrics["bm"].append(sensitivity + specificity - 1)
+                    best_metrics["uar"].append((sensitivity + specificity) / 2)
 
-                    except KeyError:
-                        print(experiment_results.keys())
-                        print(f"error in {result.resolve()}")
+                except KeyError:
+                    print(experiment_results.keys())
+                    print(f"error in {result.resolve()}")
+                except ZeroDivisionError:
+                    is_nan = True
 
-                if np.mean(best_metrics["mcc"]) > best_results[sex]["mcc"]:
+            if not is_nan and np.mean(best_metrics["mcc"]) > best_results[sex]["mcc"]:
                     best_results[sex]["mcc"] = np.mean(best_metrics["mcc"])
                     best_results[sex]["mcc_std"] = np.std(best_metrics["mcc"])
                     best_results[sex]["sensitivity"] = np.mean(best_metrics["sensitivity"])
@@ -81,7 +81,6 @@ def main():
                     best_results[sex]["architecture"] = arch_result.name
                     best_results[sex]["settings"] = kan_settings.name
     return best_results
-
 
 if __name__ == "__main__":
     best_results_dict = main()

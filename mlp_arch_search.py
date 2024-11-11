@@ -1,23 +1,28 @@
+"""
+This script performs architecture search and evaluation for a Multilayer Perceptron (MLP) model on multiple datasets.
+It includes functions for setting seeds for reproducibility, defining the MLP model, training and evaluating the model,
+and a main function to orchestrate the entire process.
+"""
 import pickle
 from pathlib import Path
 import random
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn, optim
+from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import confusion_matrix
-from matplotlib import pyplot as plt
-from imblearn.over_sampling import SMOTE, KMeansSMOTE
-from imblearn.base import BaseSampler
-from torch.utils.data import DataLoader, TensorDataset
 
 from src.customsmote import CustomSMOTE
 
 
 # Set seeds for reproducibility
-def set_seed(seed):
+def set_seed(seed: int):
+    """
+    Set the seed for generating random numbers to ensure reproducibility.
+    :param seed: The seed value to use for random number generation.
+    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -35,8 +40,15 @@ torch.set_default_dtype(torch.float64)
 
 # Define the MLP model
 class MLP(nn.Module):
+    """
+    Multilayer Perceptron (MLP) neural network model.
+    """
     def __init__(self, layer_sizes):
-        super(MLP, self).__init__()
+        """
+        Initialize the MLP model.
+        :param layer_sizes: (list of int) List containing the number of neurons in each layer.
+        """
+        super().__init__()
         layers = []
         for i in range(len(layer_sizes) - 1):
             layers.append(nn.Linear(layer_sizes[i], layer_sizes[i + 1]))
@@ -45,10 +57,24 @@ class MLP(nn.Module):
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
+        """
+        Forward pass through the MLP model.
+        :param x: (torch.Tensor) The input tensor to the model.
+        :returns: (torch.Tensor) The output tensor from the model.
+        """
         return self.network(x)
 
 
 def train_and_evaluate(model, train_loader, val_loader, epochs, device):
+    """
+    Train and evaluate the MLP model.
+    :param model: (nn.Module) The MLP model to train.
+    :param train_loader: (DataLoader) The DataLoader for the training set.
+    :param val_loader: (DataLoader) The DataLoader for the validation set.
+    :param epochs: (int) The number of epochs to train the model.
+    :param device: (torch.device) The device to use for training.
+    :returns: (dict) A dictionary containing the evaluation metrics
+    """
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.LBFGS(model.parameters())
     metrics = {"tp": [],
@@ -84,17 +110,20 @@ def train_and_evaluate(model, train_loader, val_loader, epochs, device):
 
         conf_matrix = confusion_matrix(val_targets, val_predictions)
         tn, fp, fn, tp = conf_matrix.ravel()
+        uar = 0.5 * (tp / (tp + fn) + tn / (tn + fp))
         metrics["tp"].append(tp)
         metrics["tn"].append(tn)
         metrics["fp"].append(fp)
         metrics["fn"].append(fn)
-        uar = tp / (tp + fn) + tn / (tn + fp)
-        metrics["uar"].append(0.5 * uar)
+        metrics["uar"].append(uar)
     metrics["loss"] = loss_values
     return metrics
 
 
 def main():
+    """
+    Main function to perform MLP architecture search and evaluation on datasets.
+    """
     datasets = Path("", "training_data")
     for dataset in datasets.iterdir():
         print(f"evaluating dataset {dataset}")
@@ -107,7 +136,7 @@ def main():
         results_path = Path(".", "results_mlp", dataset)
         # get the number of features
         input_size = X.shape[1]
-        # define MLP architecture
+        # define MLP architectures
         steps = list(np.linspace(0, 2, 21))
         mlp_archs = []
         for first in steps:
@@ -129,12 +158,10 @@ def main():
             result_dir.mkdir(parents=True, exist_ok=True)
             print(f"evaluating {str(arch)}")
             skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=N_SEED)
-            idx = 0
-            for train_index, test_index in skf.split(X, y):
-                idx += 1
+            for idx, (train_index, test_index) in enumerate(skf.split(X, y)):
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
-                # KMeansSMOTE resampling. if fails 10x SMOTE resampling
+                # KMeansSMOTE resampling
                 X_resampled, y_resampled = CustomSMOTE(random_state=N_SEED).fit_resample(X_train, y_train)
                 # MinMaxScaling
                 scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -151,10 +178,10 @@ def main():
 
                 # create model
                 model = MLP(arch).to(DEVICE)
-                results = train_and_evaluate(model, train_loader, val_loader, 200, DEVICE)
+                results = train_and_evaluate(model, train_loader, val_loader, epochs=200, device=DEVICE)
                 best_uar.append(np.max(results["uar"]))
 
-                with open(result_dir.joinpath(f'mlp_res_{idx}.pickle'), "wb") as output_file:
+                with open(result_dir.joinpath(f'mlp_res_{idx+1}.pickle'), "wb") as output_file:
                     pickle.dump(results, output_file)
             print(f"mean uar: {np.mean(best_uar)}")
 
