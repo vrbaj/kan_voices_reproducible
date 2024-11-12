@@ -32,10 +32,10 @@ def main():
 
     pickled_results_path = Path(".", "results_kan")
     for kan_settings in sorted(pickled_results_path.iterdir()):
+        print(f"evaluating {kan_settings}")
         for dataset in sorted(kan_settings.joinpath("training_data").iterdir()):
             sex = dataset.name
             for arch_result in dataset.iterdir():
-                print(f"evaluating architecture {arch_result}")
                 best_metrics = {"mcc": [], "sensitivity": [], "specificity": [], "gm": [], "uar": [], "bm": []}
                 for result in arch_result.glob("*.pickle"):
                     # read result for a single train/test split

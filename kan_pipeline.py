@@ -15,7 +15,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from src.customsmote import CustomSMOTE
 
-N_SEED = 42
+N_SEED = 42 # You can choose any number you prefe
 
 # Set the CUBLAS_WORKSPACE_CONFIG environment variable
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
@@ -36,7 +36,7 @@ def set_seed(seed):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.benchmark = False
 
-set_seed(N_SEED)  # You can choose any number you prefer
+set_seed(N_SEED)
 
 
 ############## Functions used as metrics
@@ -122,8 +122,8 @@ datasets = Path("", "training_data")
 # select computational device -> changed to CPU as it is faster for small datasets (as SVD)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(DEVICE)
-evaluated_ks = [3, 4, 5, 6] # TODO: check as this was taken from history
-evaluated_grids = [5, 6, 7, 8] # TODO: -||-
+evaluated_ks = [3, 4, 5, 6]
+evaluated_grids = [5, 6, 7, 8, 9]
 
 for k in evaluated_ks:
     for grid in evaluated_grids:
@@ -135,7 +135,7 @@ for k in evaluated_ks:
             X = np.array(dataset_file["data"])
             y = np.array(dataset_file["labels"])
             # path where to store results
-            results_path = Path(".", f"results_1layer_lamb0.001_g{grid}_k{k}_100epochs", dataset) # TODO: change to subdirs
+            results_path = Path(".", "results_kan", f"g{grid}_k{k}", dataset)
             # get the number of features
             input_size = X.shape[1]
             # define KAN architectures
@@ -153,8 +153,9 @@ for k in evaluated_ks:
             # iterate over KAN architectures and train for each dataset
             for arch in kan_archs:
                 torch.manual_seed(0) # Sorry :( we keep this so we don't need to recompute results
+                # set_seed(N_SEED) # This would be the preffered way
 
-                # create results directory for each dataset and evaluated architecture
+                # create results directory for each dataset (done when defining results_path) and evaluated architecture
                 result_dir = results_path.joinpath(str(arch).replace(
                     ",", "_").replace(" ", "").replace(
                     "[", "").replace("]", ""))
@@ -172,7 +173,6 @@ for k in evaluated_ks:
                     X_train_scaled = scaler.fit_transform(X_resampled)
                     X_test_scaled = scaler.transform(X_test)
 
-                    print(np.isnan(np.min(X_train_scaled)), np.isnan(np.min(X_test_scaled))) # TODO: why?
                     # KAN dataset format, load it to device
                     dataset = {
                         "train_input": torch.from_numpy(X_train_scaled).to(DEVICE),
