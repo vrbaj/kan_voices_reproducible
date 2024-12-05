@@ -1,42 +1,48 @@
+import random
 import pickle
 from pathlib import Path
 
-
 import numpy as np
-from matplotlib import pyplot as plt
-from sklearn.feature_selection import SelectKBest, SelectPercentile, mutual_info_classif
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.feature_selection import mutual_info_classif
 
-# path to training datasets
-datasets = Path("", "training_data", "men")
-# select computational device -> changed to CPU as it is faster for small datasets (as SVD)
-DEVICE = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# torch.set_default_device(DEVICE)
-print(f"The {DEVICE} will be used for the computation..")
-to_evaluate = []
-for dataset in list(datasets.iterdir()):
-    if dataset.name in to_evaluate or len(to_evaluate) == 0:
-        print(f"evaluating dataset {dataset}")
-        # load dataset
-        with open(dataset.joinpath("dataset.pk"), "rb") as f:
-            dataset_file = pickle.load(f)
-        X = np.array(dataset_file["data"])
-        y = np.array(dataset_file["labels"])
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        X = scaler.fit_transform(X)
-        print(f"X.shape {X.shape}")
-        mut_info = mutual_info_classif(X, y, random_state=1)
-        print(mut_info.shape)
-        print(mutual_info_classif(X, y))
-        to_drop = np.where(mut_info == 0.)[0]
-        X = np.delete(X, to_drop, axis=1)
-        print(f"After drop X {X.shape}")
-        # selector = SelectKBest(mutual_info_classif, k=20)
-        # X_reduced = selector.fit_transform(X, y)
-        # X_reduced.shape
-        # plt.plot(sorted(mut_info))
-        # plt.show()
-        dataset_to_dump = {"data": X, "labels": y}
-        with open(dataset.parent.joinpath("dataset_selected.pk"), "wb") as f:
-            pickle.dump(dataset_to_dump, f)
+RANDOM_SEED = 42
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
 
+THRESHOLD = 1e-5
+
+def main(dataset_path: Path):
+    data = np.load(dataset_path.joinpath("datasets.npz"))
+    X_train=data['X_train']
+    y_train=data['y_train']
+    X_test=data['X_test']
+    y_test=data['y_test']
+    X_val=data['X_val']
+    y_val=data['y_val']
+
+    mut_info = mutual_info_classif(X_train, y_train, random_state=RANDOM_SEED)
+    print("Train shape: ", X_train.shape)
+    to_del =  np.where(mut_info <= THRESHOLD)[0]
+    print("We will eliminate ", len(to_del), " features")
+    X_train = np.delete(X_train, to_del, axis=1)
+    X_test = np.delete(X_test, to_del, axis=1)
+    X_val= np.delete(X_val, to_del, axis=1)
+    print("We are left with train shape: ", X_train.shape)
+    np.savez(dataset_path.joinpath("datasets_selected.npz"),
+             X_train=X_train, y_train=y_train,
+             X_test=X_test, y_test=y_test,
+             X_val=X_val, y_val=y_val,)
+
+    # save mutal information
+    with dataset_path.joinpath("featurenames.txt").open("r") as f:
+        header = f.readline().split(", ")
+    with dataset_path.joinpath("mutal_information.txt").open("w") as f:
+        for head,val in zip(header,mut_info.tolist()):
+            f.write(f"{head},{val > THRESHOLD},{val}\n")
+
+if __name__=="__main__":
+    for sex in ["women","men"]:
+        print("-"*64)
+        print("Analyzing ", sex)
+        dataset = Path("", "training_data", sex)
+        main(dataset_path=dataset)
