@@ -5,47 +5,27 @@ Datasets are balanced via KMeansSMOTE and SMV is 10 fold cross-validated.
 import pickle
 from pathlib import Path
 import argparse
+import json
 
 import numpy as np
 import pandas as pd
 import tqdm
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
-from sklearn.metrics import accuracy_score, recall_score, matthews_corrcoef
+from sklearn.model_selection import ParameterGrid, cross_validate
+from sklearn.metrics import accuracy_score, recall_score, matthews_corrcoef, balanced_accuracy_score
 from sklearn.metrics import make_scorer
 from imblearn.metrics import geometric_mean_score
-from classifier_configs import get_classifier
-from src.custom_metrics import unweighted_average_recall_score, bookmakers_informedness
+from ml_classifier_configs import get_classifier
 
-N_SEED = 42
-np.random.seed(N_SEED)
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
 
-scoring_dict = {"mcc": make_scorer(matthews_corrcoef),
-                "accuracy": make_scorer(accuracy_score),
-                "recall": make_scorer(recall_score),
-                "specificity": make_scorer(recall_score, pos_label=0),
-                "gm": make_scorer(geometric_mean_score),
-                "uar": make_scorer(unweighted_average_recall_score),
-                "bm": make_scorer(bookmakers_informedness)}
-
-
-def get_datasets_to_process(datasets_path: Path, results_data: Path):
-    """
-    Get datasets that were not evaluated.
-    :param datasets_path: Path, path to training datasets
-    :param results_data: Path, path to results folder (used to check which datasets were already evaluated)
-    :param dataset_slice: int, slice of datasets to evaluate. If None all datasets will be evaluated.
-    If tuple, slice will be used, e.g. (10, 100). If int, first n datasets will be evaluated.
-    :return: list of datasets to evaluate
-    """
-    # get all datasets in training_data
-    td = sorted([str(x.name) for x in datasets_path.iterdir()])
-
-    # get all datasets, that were already evaluated
-    tr = sorted([str(x.name) for x in results_data.iterdir()])
-    # to perform gridsearch only for datasets that were not evaluated so far
-    to_do = sorted(list(set(td) - set(tr)))
-
-    return to_do
+scoring_dict = {"mcc": matthews_corrcoef,
+                "accuracy": accuracy_score,
+                "recall": recall_score,
+                "specificity": (lambda y_true, y_pred: recall_score(y_true, y_pred, pos_label=0)),
+                "gm": geometric_mean_score,
+                "uar":  (lambda y_true, y_pred: balanced_accuracy_score(y_true, y_pred, adjusted=False)),
+                "bm":  (lambda y_true, y_pred: balanced_accuracy_score(y_true, y_pred, adjusted=True))}
 
 
 # pylint: disable=too-many-locals
@@ -56,65 +36,81 @@ def main(sex: str = "women",
 
     :param sex: The sex for which the classifier is trained. Default is "women".
     :param classifier: The type of classifier to use. Default is "svm_poly".
-    :param dataset_slice: The slice of the dataset to process. Default is None.
     """
     training_data = Path(".").joinpath("training_data", sex)
-    results_data = Path(".").joinpath("results", classifier, sex)
+    results_data = Path(".").joinpath("results", sex, classifier)
     results_data.mkdir(exist_ok=True, parents=True)
 
-    dataset = get_datasets_to_process(training_data, results_data)
-    dataset = sorted(dataset)
-    for training_dataset_str in tqdm.tqdm(dataset):
-        results_file = results_data.joinpath(str(training_dataset_str))
-        # path to training dataset
-        training_dataset = training_data.joinpath(training_dataset_str)
-        # print(f"evaluate {training_dataset}")
-        results_data.joinpath(str(training_dataset.name)).mkdir(parents=True, exist_ok=True)
-        # load dataset
-        if not f"{training_dataset.name}" == "dataset_selected.pk":
-            with open(training_data.joinpath(str(training_dataset.name), "dataset_selected.pk"), "rb") as f:
-                train_set = pickle.load(f)
-            dataset = {"X": np.array(train_set["data"]),
-                       "y": np.array(train_set["labels"])}
-            # imblearn pipeline perform the resampling only with the training dataset
-            # and scaling according to training dataset
-            pipeline, param_grid = get_classifier(classifier, random_seed=N_SEED)
-            cross_validation = StratifiedKFold(n_splits=10, shuffle=True, random_state=N_SEED)
-            # sklearn gridsearch with crossvalidation
-            grid_search = GridSearchCV(pipeline, param_grid, cv=cross_validation, scoring=scoring_dict,
-                                       n_jobs=-1, refit=False)
-            grid_search.fit(dataset["X"], dataset["y"])
-            # create folder with the training_dataset name to store results
-            results_file.mkdir(exist_ok=True)
-            # no need to write header again and again and again,...
-            if results_file.joinpath("results.csv").exists():
-                header = False
-            else:
-                header = True
+    pipeline, param_grid = get_classifier(classifier, random_seed=RANDOM_SEED)
 
-            # dump gridsearch results to a results.csv
-            print(pd.DataFrame(grid_search.cv_results_))
+    data = np.load(training_data.joinpath("datasets_selected.npz"))
+    X_train=data['X_train']
+    y_train=data['y_train']
+    X_test=data['X_test']
+    y_test=data['y_test']
+    X_val=data['X_val']
+    y_val=data['y_val']
 
-            pd.DataFrame(grid_search.cv_results_).round(6)[
-                ["params", "mean_test_accuracy", "std_test_accuracy", "mean_test_recall", "std_test_recall",
-                 "mean_test_specificity", "std_test_specificity", "mean_test_mcc", "std_test_mcc",
-                 "mean_test_gm", "std_test_gm", "mean_test_uar", "std_test_uar", "mean_test_bm", "std_test_bm"]
-                 ].to_csv(results_file.joinpath("results.csv"),
-                index=False, mode="a",
-                header=header, encoding="utf8", lineterminator="\n")
 
-    # pylint: enable=too-many-locals
+    for params in tqdm.tqdm(list(ParameterGrid(param_grid))):
+        pipeline.set_params(**params)
+        pipeline.fit(X_train,y_train)
+        y_pred = pipeline.predict(X_val)
+        results = {"params": json.dumps(params)}
+        for name,scorer in scoring_dict.items():
+            results[name+"_val"] = scorer(y_val, y_pred)
+        if 'result_table' not in locals():
+            result_table = pd.DataFrame.from_dict([results])
+            continue
+        result_table = pd.concat([result_table, pd.DataFrame.from_dict([results])], ignore_index=True)
+
+    result_table.round(6).to_csv(results_data.joinpath("results.csv"),
+        index=False, header=True, encoding="utf8", lineterminator="\n")
+
+    # find the row with the highest mcc
+    best_row = result_table.iloc[result_table["mcc_val"].idxmax()]
+    print(f'Best classificator has MCC={best_row["mcc_val"]} and UAR={best_row["uar_val"]}')
+    best_params = json.loads(best_row["params"])
+    print(best_params)
+    pipeline.set_params(**best_params)
+    pipeline.fit(X=np.concatenate((X_train,X_val), axis=0),
+                 y=np.concatenate((y_train,y_val), axis=0))
+    y_pred_test = pipeline.predict(X_test)
+    results_final = {
+        "classifier": classifier
+    }
+    results_final.update(best_row.to_dict())
+
+    for name, scorer in scoring_dict.items():
+        results_final[name+"_test"] = scorer(y_test, y_pred_test)
+
+    X = np.concatenate((X_train, X_val, X_test))
+    y = np.concatenate((y_train, y_val, y_test))
+
+    scorers = {name: make_scorer(scorer) for name, scorer in scoring_dict.items()}
+
+    cv_results = cross_validate(pipeline, X, y,
+                                scoring=scorers,
+                                cv=10, n_jobs=-1)
+    print(pipeline.get_params())
+    for name, values in cv_results.items():
+        if not 'test_' in name:
+            continue
+        score_name = name.split("_")[-1]
+        results_final[score_name+"_cv_mean"] = np.mean(values)
+        results_final[score_name+"_cv_std"] = np.std(values)
+
+    final_results_file = results_data.parent.joinpath("results_final.csv")
+
+    pd.DataFrame.from_dict([results_final]).round(6).to_csv(
+        final_results_file,
+        index=False, mode="a",
+        header= not final_results_file.exists(),
+        encoding="utf8", lineterminator="\n")
 
 
 if __name__ == "__main__":
-    # argument parser
-    parser = argparse.ArgumentParser(
-        prog="classifier_pipeline.py",
-        description="Perform grid search for different classifier across various datasets. "
-    )
-    parser.add_argument("classifier", type=str)
-    parser.add_argument("sex", type=str)
-    args = parser.parse_args()
-    sex_to_compute = args.sex
-    used_classifier = args.classifier
-    main(sex_to_compute, used_classifier)
+    for classifier in ["svm_poly","svm_rbf","knn","gauss_nb","random_forest","adaboost"]:
+        for sex in ["women", "men"]:
+            print(f"Computing {classifier} for {sex}")
+            main(sex, classifier)
