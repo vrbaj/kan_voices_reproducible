@@ -3,8 +3,13 @@ This module contains a custom implementation of SMOTE algorithm. The custom impl
 is based on the KMeansSMOTE algorithm from the imbalanced-learn library with fallback to
 standard SMOTE in case KMeansSMOTE fails 10 times.
 """
+import warnings
+
 from imblearn.base import BaseSampler
 from imblearn.over_sampling import SMOTE, KMeansSMOTE
+
+
+warnings.simplefilter(action='ignore', category=FutureWarning, )
 
 #pylint: disable=broad-exception-caught
 
