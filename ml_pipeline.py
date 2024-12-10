@@ -3,12 +3,11 @@ Script that performs grid search for SVM across various datasets.
 Datasets are balanced via KMeansSMOTE and SMV is 10 fold cross-validated.
 """
 from pathlib import Path
-import json
 import warnings
+import os
 
 import numpy as np
 import pandas as pd
-import tqdm
 import sklearn
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 from sklearn.metrics import accuracy_score, recall_score, matthews_corrcoef, balanced_accuracy_score
@@ -38,6 +37,8 @@ scoring_dict = {"mcc": make_scorer(matthews_corrcoef),
 # ignore future warnings
 warnings.simplefilter(action='ignore', category=FutureWarning, )
 warnings.simplefilter(action="once", category=sklearn.exceptions.ConvergenceWarning)
+os.environ["PYTHONWARNINGS"] = "ignore"
+
 
 
 # pylint: disable=too-many-locals
