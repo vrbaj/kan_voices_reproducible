@@ -3,15 +3,11 @@ Script to generate all evaluated datasets, with various features combinations
 """
 import csv
 from pathlib import Path
-import itertools
 from multiprocessing import freeze_support
-import pickle
 import json
 import random
 import numpy as np
-from sklearn.model_selection import train_test_split
 
-from tqdm import tqdm
 
 RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
@@ -36,7 +32,7 @@ def compose_dataset(dataset_params: dict) -> None:
         dataset = csv.DictReader(csv_file, dialect="unix")
         patient: dict
         # iterate over pations
-        for patient in tqdm(dataset):
+        for patient in dataset:
             patient_features = []
             patient.pop("session_id")
             # select patients according to the specified sex
@@ -72,17 +68,13 @@ def compose_dataset(dataset_params: dict) -> None:
     X = np.array(X,np.float32)
     y = np.array(y)
 
-    # make train test val split
-    X,X_test, y, y_test = train_test_split(X, y, test_size = 0.15, stratify=y, random_state=RANDOM_SEED)
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size = 0.15/0.85, stratify=y, random_state=RANDOM_SEED)
     dataset_path = Path(".").joinpath("training_data", subdir_name)
     dataset_path.mkdir(parents=True,exist_ok=True)
 
     # dump data
     np.savez(dataset_path.joinpath("datasets.npz"),
-             X_train=X_train, y_train=y_train,
-             X_test=X_test, y_test=y_test,
-             X_val=X_val, y_val=y_val,)
+             X=X,y=y)
+    print(X.shape)
 
     # dump dataset config
     with dataset_path.joinpath("config.json").open("w") as f:
@@ -105,15 +97,11 @@ def main() -> None:
             "sex": sex_of_interest,
             "diff_pitch": True,
             "stdev_f0": True,
-            "mfcc": 20,
-            "var_mfcc": True,
             "spectral_centroid": True,
             "spectral_contrast": True,
             "spectral_flatness": True,
             "spectral_rolloff": True,
             "zero_crossing_rate": True,
-            "formants": True,
-            "lfcc": True,
             "skewness": True,
             "shannon_entropy": True,
             "nan": True,

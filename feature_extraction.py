@@ -128,77 +128,9 @@ def extract_spectral_features(raw_data_praat, raw_data_librosa, sampling_rate, s
     spectral_contrast = np.mean(librosa.feature.spectral_contrast(y=raw_data_librosa, sr=sampling_rate), axis=1)
     features["spectral_contrast"] = spectral_contrast
 
-    # formants (it is necessary to use divfferent setting based on sex of patient)
-    if sex == 1:
-        formant_object = call(raw_data_praat, "To Formant (burg)", 0.0, 5, 5500, 0.025, 50)
-    else:
-        formant_object = call(raw_data_praat, "To Formant (burg)", 0.0, 5, 5000, 0.025, 50)
-
-    formant_1 = call(formant_object, "Get mean", 1, 0.0, 0.0, "Hertz")
-    formant_2 = call(formant_object, "Get mean", 2, 0.0, 0.0, "Hertz")
-    formant_3 = call(formant_object, "Get mean", 3, 0.0, 0.0, "Hertz")
-
-    formants_list = [formant_1, formant_2, formant_3]
-    features["formants"] = formants_list
-
     return features
 
 
-# pylint: disable=too-many-locals
-def extract_cepstral_features(raw_data_librosa, raw_data_torch, sampling_rate) -> dict:
-    """
-    Extract cepstral features from the voice file.
-    :param raw_data_librosa: raw data from the voice file (librosa)
-    :param raw_data_torch: raw data from the voice file (torchaudio)
-    :param sampling_rate: sampling rate of the voice file
-    :return: dictionary with extracted features
-    """
-    features = {}
-
-    mel_spectrogram = librosa.power_to_db(librosa.feature.melspectrogram(y=raw_data_librosa, sr=sampling_rate))
-
-    # 30 mfcc
-    mfccs = librosa.feature.mfcc(S=mel_spectrogram, n_mfcc=20)
-    mfcc = np.mean(mfccs, axis=1)
-    features["mfcc"] = mfcc
-
-    # mfcc variance feature
-    mfcc_var = np.var(mfccs, axis=1)
-    features["var_mfcc"] = mfcc_var
-
-    # delta mfcc feature
-    delta_mfccs = librosa.feature.delta(mfccs)
-    delta_mfcc = np.mean(delta_mfccs, axis=1)
-    features["delta_mfcc"] = delta_mfcc
-
-    # variance of delta mfcc feature
-    delta_mfcc_var = np.var(delta_mfccs, axis=1)
-    features["var_delta_mfcc"] = delta_mfcc_var
-
-    # delta2 mfcc feature
-    delta2_mfccs = librosa.feature.delta(mfccs, order=2)
-    delta2_mfcc = np.mean(delta2_mfccs, axis=1)
-    features["delta2_mfcc"] = delta2_mfcc
-
-    # variance of delta2 mfcc feature
-    delta2_mfcc_var = np.var(delta2_mfccs, axis=1)
-    features["var_delta2_mfcc"] = delta2_mfcc_var
-
-    # 20 lfcc
-    lfcc_transform = transform.LFCC(
-        sample_rate=sampling_rate,
-        n_lfcc=20,
-        speckwargs={
-            "n_fft": 2048,
-            "win_length": None,
-            "hop_length": 512,
-        },)
-    lfccs = lfcc_transform(raw_data_torch)
-    lfcc = torch.mean(lfccs, dim=2)[0]
-    features["lfcc"] = [tensor.item() for tensor in lfcc]
-
-    return features
-# pylint: enable=too-many-locals
 
 
 def extract_features(voice_path: Path, patient_table) -> dict:
@@ -235,9 +167,6 @@ def extract_features(voice_path: Path, patient_table) -> dict:
                                                   features["sex"])
     features.update(spectral_features)
 
-    # Extract cepstral features
-    cepsreal_features = extract_cepstral_features(raw_data_librosa, raw_data_torch, sampling_rate)
-    features.update(cepsreal_features)
 
     # check NaN
     features["nan"] = 0
@@ -264,10 +193,9 @@ def main(source_dictionary: Path, round_digits = 6):
 
     data_to_dump = []
     # features that need to be rounded to make the results reproducible
-    to_round = ["diff_pitch", "mean_f0", "stdev_f0", "hnr", "jitter", "shimmer", "mfcc",
-                "var_mfcc", "delta_mfcc", "var_delta_mfcc", "delta2_mfcc", "var_delta2_mfcc",
-                "spectral_centroid", "spectral_contrast", "spectral_flatness", "spectral_rolloff",
-                "zero_crossing_rate", "formants", "shannon_entropy", "lfcc", "skewness"]
+    to_round = ["diff_pitch", "mean_f0", "stdev_f0", "hnr", "jitter", "shimmer",
+                "spectral_centroid", "spectral_contrast", "spectral_flatness",
+                "spectral_rolloff", "zero_crossing_rate", "shannon_entropy", "skewness"]
 
     # read the information about patients
     patient_table = pd.read_csv(source_dictionary.joinpath("dataset_information.csv"))
