@@ -20,7 +20,10 @@ RANDOM_SEED = 42 # You can choose any number you prefe
 # Set the CUBLAS_WORKSPACE_CONFIG environment variable
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
-
+# since PyKAN 0.1.2 it is necessary to magically set torch default type to float64
+# to avoid issues with matrix inversion during training with the LBFGS optimizer
+torch.set_default_dtype(torch.float32)
+torch_dtype = torch.get_default_dtype()
 
 def set_seed(seed):
     """
@@ -186,17 +189,17 @@ for k in evaluated_ks:
                     X_resampled, y_resampled = CustomSMOTE(random_state=RANDOM_SEED).fit_resample(X_train, y_train)
                     # MinMaxScaling
                     scaler = MinMaxScaler(feature_range=(-1, 1))
-                    X_train_scaled = scaler.fit_transform(X_resampled)
-                    X_test_scaled = scaler.transform(X_test)
+                    X_train_scaled = scaler.fit_transform(X_resampled).astype(np.float32)
+                    X_test_scaled = scaler.transform(X_test).astype(np.float32)
 
 
 
                     # KAN dataset format, load it to device
                     dataset = {
-                        "train_input": torch.from_numpy(X_train_scaled).to(DEVICE),
-                        "train_label": torch.from_numpy(y_resampled).type(torch.LongTensor).to(DEVICE),
-                        "test_input": torch.from_numpy(X_test_scaled).to(DEVICE),
-                        "test_label": torch.from_numpy(y_test).type(torch.LongTensor).to(DEVICE)
+                        "train_input": torch.from_numpy(X_train_scaled).type(torch_dtype).to(DEVICE),
+                        "train_label": torch.from_numpy(y_resampled).to(DEVICE),
+                        "test_input": torch.from_numpy(X_test_scaled).type(torch_dtype).to(DEVICE),
+                        "test_label": torch.from_numpy(y_test).to(DEVICE)
                     }
 
                     # create KAN model
@@ -205,7 +208,7 @@ for k in evaluated_ks:
                     # load model to device
                     model.to(DEVICE)
                     # train model
-                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=50, batch=-1, update_grid=True,
+                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=50, batch=-1, update_grid=False,
                                         metrics=(
                                             train_acc, train_uar, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar
                                         ), loss_fn=torch.nn.CrossEntropyLoss())
