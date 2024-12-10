@@ -15,13 +15,11 @@ from sklearn.preprocessing import MinMaxScaler
 
 from src.customsmote import CustomSMOTE
 
-N_SEED = 42 # You can choose any number you prefe
+RANDOM_SEED = 42 # You can choose any number you prefe
 
 # Set the CUBLAS_WORKSPACE_CONFIG environment variable
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
-# since PyKAN 0.1.2 it is necessary to magically set torch default type to float64
-# to avoid issues with matrix inversion during training with the LBFGS optimizer
-torch.set_default_dtype(torch.float64)
+
 
 
 def set_seed(seed):
@@ -36,7 +34,7 @@ def set_seed(seed):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.benchmark = False
 
-set_seed(N_SEED)
+set_seed(RANDOM_SEED)
 
 
 ############## Functions used as metrics
@@ -46,6 +44,24 @@ def train_acc():
     """
     return torch.mean((torch.argmax(model(dataset["train_input"]),
                                     dim=1) == dataset["train_label"]).float())
+
+def train_uar():
+    """
+    Train UAR. That is how the PyKAN needs the metric functions.
+    """
+    predictions = torch.argmax(model(dataset["train_input"]), dim=1)
+    labels = dataset["train_label"]
+    # Calculate TP, TN, FP, FN
+    tn = ((predictions == 0) & (labels == 0)).sum().float()
+    tp = ((predictions == 1) & (labels == 1)).sum().float()
+    fn = ((predictions == 0) & (labels == 1)).sum().float()
+    fp = ((predictions == 1) & (labels == 0)).sum().float()
+
+    # Calculate recall
+    recall = tp / (tp + fn)
+    specificity = tn / (tn + fp)
+    uar = 0.5 * (recall + specificity)
+    return uar
 
 def test_acc():
     """
@@ -100,7 +116,7 @@ def test_fn():
 
 def test_uar():
     """
-    Recall for the test set. That is how the PyKAN needs the metric functions.
+    UAR for the test set. That is how the PyKAN needs the metric functions.
     """
     predictions = torch.argmax(model(dataset["test_input"]), dim=1)
     labels = dataset["test_label"]
@@ -127,15 +143,15 @@ evaluated_grids = [5, 6, 7, 8, 9]
 
 for k in evaluated_ks:
     for grid in evaluated_grids:
-        for dataset in datasets.glob("men"):
-            print(f"evaluating dataset {dataset}")
+        for datadir in datasets.rglob("*"):
+            sex = datadir.stem
             # load dataset
-            with open(dataset.joinpath("dataset_selected.pk"), "rb") as f:
-                dataset_file = pickle.load(f)
-            X = np.array(dataset_file["data"])
-            y = np.array(dataset_file["labels"])
+            data = np.load(datadir.joinpath("datasets.npz"))
+            X=data['X']
+            y=data['y']
+
             # path where to store results
-            results_path = Path(".", "results_kan", f"g{grid}_k{k}", dataset)
+            results_path = Path(".", "results_kan", f"g{grid}_k{k}", sex)
             # get the number of features
             input_size = X.shape[1]
             # define KAN architectures
@@ -152,7 +168,6 @@ for k in evaluated_ks:
 
             # iterate over KAN architectures and train for each dataset
             for arch in kan_archs:
-                torch.manual_seed(0) # Sorry :( we keep this so we don't need to recompute results
                 # set_seed(N_SEED) # This would be the preffered way
 
                 # create results directory for each dataset (done when defining results_path) and evaluated architecture
@@ -162,16 +177,19 @@ for k in evaluated_ks:
                 result_dir.mkdir(parents=True, exist_ok=True)
 
                 print(f"evaluating {str(arch)}")
-                skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=N_SEED)
+                skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
                 for idx, (train_index, test_index) in enumerate(skf.split(X, y)):
                     X_train, X_test = X[train_index], X[test_index]
                     y_train, y_test = y[train_index], y[test_index]
+
                     # KMeansSMOTE resampling. if 10x fails SMOTE resampling
-                    X_resampled, y_resampled = CustomSMOTE(random_state=N_SEED).fit_resample(X_train, y_train)
+                    X_resampled, y_resampled = CustomSMOTE(random_state=RANDOM_SEED).fit_resample(X_train, y_train)
                     # MinMaxScaling
                     scaler = MinMaxScaler(feature_range=(-1, 1))
                     X_train_scaled = scaler.fit_transform(X_resampled)
                     X_test_scaled = scaler.transform(X_test)
+
+
 
                     # KAN dataset format, load it to device
                     dataset = {
@@ -182,18 +200,18 @@ for k in evaluated_ks:
                     }
 
                     # create KAN model
-                    model = KAN(width=arch, grid=grid, k=k, seed=N_SEED,
+                    model = KAN(width=arch, grid=grid, k=k, seed=RANDOM_SEED,
                                 auto_save=False, save_act=True)
                     # load model to device
                     model.to(DEVICE)
                     # train model
-                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=100, batch=-1,
-                                        update_grid=True, metrics=(
-                                            train_acc, test_acc, test_tn,test_tp, test_fn, test_fp, test_uar),
-                                        loss_fn=torch.nn.CrossEntropyLoss())
+                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=50, batch=-1, update_grid=True,
+                                        metrics=(
+                                            train_acc, train_uar, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar
+                                        ), loss_fn=torch.nn.CrossEntropyLoss())
                     # infotainment during training
-                    print(f"final test acc: {results['test_acc'][-1]}"
-                          f" mean test acc: {np.mean(results['test_acc'])}",
+                    print(f"final test acc: {results['test_acc'][-1]}",
+                          f"mean test acc: {np.mean(results['test_acc'])}",
                           f"best test uar: {np.max(results["test_uar"])} ")
 
                     # dump results
