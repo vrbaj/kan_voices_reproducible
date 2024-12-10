@@ -8,6 +8,7 @@ from pathlib import Path
 import random
 import numpy as np
 import torch
+from tqdm import tqdm
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import StratifiedKFold
@@ -31,12 +32,12 @@ def set_seed(seed: int):
     torch.backends.cudnn.benchmark = False
 
 
-N_SEED = 42 # You can choose any number you prefer
+RANDOM_SEED = 42 # You can choose any number you prefer
 
 # select computational device
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"The {DEVICE} will be used for the computation..")
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float32)
 
 # Define the MLP model
 class MLP(nn.Module):
@@ -125,15 +126,17 @@ def main():
     Main function to perform MLP architecture search and evaluation on datasets.
     """
     datasets = Path("", "training_data")
-    for dataset in datasets.iterdir():
-        print(f"evaluating dataset {dataset}")
+    for datadir in datasets.iterdir():
+        sex = datadir.stem
+        print(f"evaluating {sex}")
         # load dataset
-        with open(dataset.joinpath("dataset_selected.pk"), "rb") as f:
-            dataset_file = pickle.load(f)
-        X = np.array(dataset_file["data"])
-        y = np.array(dataset_file["labels"])
+        data = np.load(datadir.joinpath("datasets.npz"))
+        X=data['X']
+        y=data['y']
+
         # path where to store results
-        results_path = Path(".", "results_mlp", dataset)
+        results_path = Path(".", "results_mlp", sex)
+        results_path.mkdir(parents=True,exist_ok=True)
         # get the number of features
         input_size = X.shape[1]
         # define MLP architectures
@@ -151,40 +154,43 @@ def main():
 
         for arch in mlp_archs:
             best_uar = []
-            set_seed(N_SEED)
 
             # create results directory for each dataset and evaluated architecture
             result_dir = results_path.joinpath(str(arch).replace(",", "_").replace(" ", ""))
             result_dir.mkdir(parents=True, exist_ok=True)
+
             print(f"evaluating {str(arch)}")
-            skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=N_SEED)
-            for idx, (train_index, test_index) in enumerate(skf.split(X, y)):
+
+            # For CV
+            skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
+            for idx, (train_index, test_index) in tqdm(enumerate(skf.split(X, y))):
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
-                # KMeansSMOTE resampling
-                X_resampled, y_resampled = CustomSMOTE(random_state=N_SEED).fit_resample(X_train, y_train)
+
+                # KMeansSMOTE resampling. if 10x fails SMOTE resampling
+                X_resampled, y_resampled = CustomSMOTE(random_state=RANDOM_SEED).fit_resample(X_train, y_train)
                 # MinMaxScaling
                 scaler = MinMaxScaler(feature_range=(-1, 1))
                 X_train_scaled = scaler.fit_transform(X_resampled)
                 X_test_scaled = scaler.transform(X_test)
+
+
 
                 # Create DataLoader for training and validation sets
                 train_dataset = TensorDataset(torch.from_numpy(X_train_scaled).to(DEVICE),
                                             torch.from_numpy(y_resampled).type(torch.float64).to(DEVICE))
                 val_dataset = TensorDataset(torch.from_numpy(X_test_scaled).to(DEVICE),
                                             torch.from_numpy(y_test).type(torch.float64).to(DEVICE))
+
                 train_loader = DataLoader(train_dataset, batch_size=len(y_train), shuffle=True)
                 val_loader = DataLoader(val_dataset, batch_size=len(y_test), shuffle=False)
-
                 # create model
                 model = MLP(arch).to(DEVICE)
-                results = train_and_evaluate(model, train_loader, val_loader, epochs=200, device=DEVICE)
+                results = train_and_evaluate(model, train_loader, val_loader, epochs=50, device=DEVICE)
                 best_uar.append(np.max(results["uar"]))
-
                 with open(result_dir.joinpath(f'mlp_res_{idx+1}.pickle'), "wb") as output_file:
                     pickle.dump(results, output_file)
             print(f"mean uar: {np.mean(best_uar)}")
-
 
 if __name__ == "__main__":
     main()
