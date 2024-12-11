@@ -145,11 +145,11 @@ def main():
         for first in steps:
             first_layer = input_size * 2 - int(first * input_size)
             if first_layer > 0:
-                mlp_archs.append([input_size, first_layer])
+                mlp_archs.append([input_size, first_layer, 2])
             for second in steps:
                 second_layer = input_size * 2 - int(second * input_size)
                 if first_layer >= second_layer > 0:
-                    mlp_archs.append([input_size, first_layer, second_layer])
+                    mlp_archs.append([input_size, first_layer, second_layer, 2])
         print(mlp_archs)
 
         for arch in mlp_archs:
