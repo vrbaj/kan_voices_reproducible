@@ -146,7 +146,7 @@ evaluated_grids = [5, 6, 7, 8, 9]
 
 for k in evaluated_ks:
     for grid in evaluated_grids:
-        for datadir in datasets.rglob("*"):
+        for datadir in datasets.glob("*"):
             sex = datadir.stem
             # load dataset
             data = np.load(datadir.joinpath("datasets.npz"))
@@ -177,6 +177,8 @@ for k in evaluated_ks:
                 result_dir = results_path.joinpath(str(arch).replace(
                     ",", "_").replace(" ", "").replace(
                     "[", "").replace("]", ""))
+                if result_dir.exists() and len(list(result_dir.iterdir())) == 10:
+                    continue
                 result_dir.mkdir(parents=True, exist_ok=True)
 
                 print(f"evaluating {str(arch)}")
