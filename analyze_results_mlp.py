@@ -1,5 +1,5 @@
 """
-Script to analyze results of kan_arch_mc.py.
+Script to analyze results of mlp_pipeline.py.
 """
 import pickle
 from pathlib import Path
@@ -37,6 +37,8 @@ def main():
         sex = dataset.name
         print("Computing results for", sex)
         best_uar = 0
+        optimistic_uar = 0
+        trash = 0
         for arch_result in tqdm(list(dataset.iterdir())):
             result_all_splits = {}
             for result in arch_result.glob("*.pickle"):
@@ -47,6 +49,9 @@ def main():
                     result_all_splits[idx] = pickle.load(f)
 
             uars = np.array([result["uar"] for result in result_all_splits.values()])
+            optimistic_uar = np.max([optimistic_uar, np.mean(np.max(uars,axis=1))])
+            if np.any(np.all(uars <= 0.5,axis=1)):
+                trash += 1
             best_idx = np.argmax(np.mean(uars,axis=0))
             tps = np.array([result["tp"][best_idx] for result in result_all_splits.values()])
             fps = np.array([result["fp"][best_idx] for result in result_all_splits.values()])
@@ -77,6 +82,9 @@ def main():
                 best_results[sex]["uar"] = np.mean(sensitivity/2+specificity/2)
                 best_results[sex]["uar_std"] = np.std(sensitivity/2+specificity/2)
                 best_results[sex]["architecture"] = arch_result.name
+        print(f"Sex: {sex}")
+        print(f"Optimistic UAR: {optimistic_uar}")
+        print("Trash: ", trash)
     return best_results
 
 if __name__ == "__main__":
