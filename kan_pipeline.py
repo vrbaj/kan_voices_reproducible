@@ -22,7 +22,7 @@ os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 # since PyKAN 0.1.2 it is necessary to magically set torch default type to float64
 # to avoid issues with matrix inversion during training with the LBFGS optimizer
-torch.set_default_dtype(torch.float32)
+torch.set_default_dtype(torch.float64)
 torch_dtype = torch.get_default_dtype()
 
 def set_seed(seed):
@@ -143,82 +143,96 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(DEVICE)
 evaluated_ks = [3, 4, 5, 6]
 evaluated_grids = [5, 6, 7, 8, 9]
+evaluated_entropy = [0.001, 0.005, 0.01]
+evaluated_smoothing = [0.1, 0.2, 0.3, 0.4]
 
-for k in evaluated_ks:
-    for grid in evaluated_grids:
-        for datadir in datasets.glob("*"):
-            sex = datadir.stem
-            # load dataset
-            data = np.load(datadir.joinpath("datasets.npz"))
-            X=data['X']
-            y=data['y']
+for entropy in evaluated_entropy:
+    for smoothing in evaluated_smoothing:
+        for k in evaluated_ks:
+            for grid in evaluated_grids:
+                for datadir in datasets.glob("*women*"):
+                    sex = datadir.stem
+                    # load dataset
+                    data = np.load(datadir.joinpath("datasets.npz"))
+                    X=data['X']
+                    y=data['y']
 
-            # path where to store results
-            results_path = Path(".", "results_kan", f"g{grid}_k{k}", sex)
-            # get the number of features
-            input_size = X.shape[1]
-            # define KAN architectures
-            steps = list(np.linspace(0, 2, 11))
-            kan_archs = []
-            for first in steps:
-                first_layer = input_size * 2 - int(first * input_size)
-                if first_layer > 0:
-                    kan_archs.append([input_size, first_layer, 2])
-                for second in steps:
-                    second_layer = input_size * 2 - int(second * input_size)
-                    if first_layer >= second_layer > 0:
-                        kan_archs.append([input_size, first_layer, second_layer, 2])
+                    # path where to store results
+                    results_path = Path(".", "results_kan", f"g{grid}_k{k}_entropy{entropy}_smoothing{smoothing}", sex)
+                    # get the number of features
+                    input_size = X.shape[1]
+                    # define KAN architectures
+                    steps = list(np.linspace(0, 2, 11))
+                    kan_archs = []
+                    for first in steps:
+                        first_layer = input_size * 1 - int(first * input_size)
+                        if first_layer > 0:
+                            kan_archs.append([input_size, first_layer, 2])
+                        for second in steps:
+                            second_layer = input_size * 1 - int(second * input_size)
+                            if first_layer >= second_layer > 0:
+                                kan_archs.append([input_size, first_layer, second_layer, 2])
 
-            # iterate over KAN architectures and train for each dataset
-            for arch in kan_archs:
-                # set_seed(N_SEED) # This would be the preffered way
+                    # iterate over KAN architectures and train for each dataset
+                    for arch in kan_archs:
+                        # set_seed(N_SEED) # This would be the preffered way
 
-                # create results directory for each dataset (done when defining results_path) and evaluated architecture
-                result_dir = results_path.joinpath(str(arch).replace(
-                    ",", "_").replace(" ", "").replace(
-                    "[", "").replace("]", ""))
-                if result_dir.exists() and len(list(result_dir.iterdir())) == 10:
-                    continue
-                result_dir.mkdir(parents=True, exist_ok=True)
+                        # create results directory for each dataset (done when defining results_path) and evaluated architecture
+                        result_dir = results_path.joinpath(str(arch).replace(
+                            ",", "_").replace(" ", "").replace(
+                            "[", "").replace("]", ""))
+                        if result_dir.exists() and len(list(result_dir.iterdir())) == 10:
+                            continue
+                        result_dir.mkdir(parents=True, exist_ok=True)
 
-                print(f"evaluating {str(arch)}")
-                skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
-                for idx, (train_index, test_index) in enumerate(skf.split(X, y)):
-                    X_train, X_test = X[train_index], X[test_index]
-                    y_train, y_test = y[train_index], y[test_index]
+                        print(f"evaluating {str(arch)}")
+                        skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=RANDOM_SEED)
+                        for idx, (train_index, test_index) in enumerate(skf.split(X, y)):
+                            X_train, X_test = X[train_index], X[test_index]
+                            y_train, y_test = y[train_index], y[test_index]
 
-                    # KMeansSMOTE resampling. if 10x fails SMOTE resampling
-                    X_resampled, y_resampled = CustomSMOTE(random_state=RANDOM_SEED).fit_resample(X_train, y_train)
-                    # MinMaxScaling
-                    scaler = MinMaxScaler(feature_range=(-1, 1))
-                    X_train_scaled = scaler.fit_transform(X_resampled).astype(np.float32)
-                    X_test_scaled = scaler.transform(X_test).astype(np.float32)
+                            # KMeansSMOTE resampling. if 10x fails SMOTE resampling
+                            X_resampled, y_resampled = CustomSMOTE(random_state=RANDOM_SEED).fit_resample(X_train, y_train)
+                            # MinMaxScaling
+                            scaler = MinMaxScaler(feature_range=(-1, 1))
+                            X_train_scaled = scaler.fit_transform(X_resampled).astype(np.float32)
+                            X_test_scaled = scaler.transform(X_test).astype(np.float32)
 
 
 
-                    # KAN dataset format, load it to device
-                    dataset = {
-                        "train_input": torch.from_numpy(X_train_scaled).type(torch_dtype).to(DEVICE),
-                        "train_label": torch.from_numpy(y_resampled).to(DEVICE),
-                        "test_input": torch.from_numpy(X_test_scaled).type(torch_dtype).to(DEVICE),
-                        "test_label": torch.from_numpy(y_test).to(DEVICE)
-                    }
+                            # KAN dataset format, load it to device
+                            dataset = {
+                                "train_input": torch.from_numpy(X_train_scaled).type(torch_dtype).to(DEVICE),
+                                "train_label": torch.from_numpy(y_resampled).to(DEVICE),
+                                "test_input": torch.from_numpy(X_test_scaled).type(torch_dtype).to(DEVICE),
+                                "test_label": torch.from_numpy(y_test).to(DEVICE)
+                            }
 
-                    # create KAN model
-                    model = KAN(width=arch, grid=grid, k=k, seed=RANDOM_SEED,
-                                auto_save=False, save_act=True)
-                    # load model to device
-                    model.to(DEVICE)
-                    # train model
-                    results = model.fit(dataset, opt="LBFGS", lamb=0.001, steps=50, batch=-1, update_grid=False,
-                                        metrics=(
-                                            train_acc, train_uar, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar
-                                        ), loss_fn=torch.nn.CrossEntropyLoss())
-                    # infotainment during training
-                    print(f"final test acc: {results['test_acc'][-1]}",
-                          f"mean test acc: {np.mean(results['test_acc'])}",
-                          f"best test uar: {np.max(results["test_uar"])} ")
+                            # create KAN model
+                            model = KAN(width=arch, grid=grid, k=k, seed=RANDOM_SEED,
+                                        auto_save=False, save_act=True)
+                            # load model to device
+                            model.to(DEVICE)
+                            # train model
+                            print(dataset["train_input"].shape, dataset["test_input"].shape)
+                            results = model.fit(dataset, opt="LBFGS", lamb=0.001, lamb_entropy=entropy ,steps=100, batch=-1, update_grid=False,
+                                                metrics=(
+                                                    train_acc, train_uar, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar
+                                                ), loss_fn=torch.nn.CrossEntropyLoss(label_smoothing=smoothing))
+                            # results = model.fit(dataset, opt="Adam", lr=0.01, steps=1000, batch=32, update_grid=False,
+                            #           metrics=(
+                            #               train_acc, train_uar, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar
+                            #           ), loss_fn=torch.nn.CrossEntropyLoss())
+                            # infotainment during training
+                            print(f"final test acc: {results['test_acc'][-1]}",
+                                  f"mean test acc: {np.mean(results['test_acc'])}",
+                                  f"best test uar: {np.max(results["test_uar"])} ",
+                                  f"best test epoch uar: {np.argmax(results['test_uar'])}",
+                                  f"best train epoch uar: {np.argmax(results['train_uar'])}",
+                                  f"best train loss epoch uar: {np.argmin(results['train_loss'])}",
+                                  f"best test loss epoch: {np.argmax(results['test_loss'])}")
+                            print(f"uar: {results['test_uar']}")
 
-                    # dump results
-                    with open(result_dir.joinpath(f'kan_res_{idx+1}.pickle'), "wb") as output_file:
-                        pickle.dump(results, output_file)
+                            # dump results
+                            with open(result_dir.joinpath(f'kan_res_{idx+1}.pickle'), "wb") as output_file:
+                                pickle.dump(results, output_file)
