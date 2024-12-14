@@ -165,11 +165,11 @@ for entropy in evaluated_entropy:
                     steps = list(np.linspace(0, 2, 11))
                     kan_archs = []
                     for first in steps:
-                        first_layer = input_size * 1 - int(first * input_size)
+                        first_layer = input_size * 2 - int(first * input_size)
                         if first_layer > 0:
                             kan_archs.append([input_size, first_layer, 2])
                         for second in steps:
-                            second_layer = input_size * 1 - int(second * input_size)
+                            second_layer = input_size * 2 - int(second * input_size)
                             if first_layer >= second_layer > 0:
                                 kan_archs.append([input_size, first_layer, second_layer, 2])
 
