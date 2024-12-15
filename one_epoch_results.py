@@ -1,0 +1,20 @@
+import pickle
+from pathlib import Path
+import numpy as np
+
+results_path = Path(".", "results_kan")
+
+uar_results = {"women": [],
+               "men": []}
+
+for hyper_settings in results_path.iterdir():
+    for sex in hyper_settings.iterdir():
+
+        for arch in sex.iterdir():
+            results = []
+            for fold in arch.iterdir():
+                with open(fold, "rb") as f:
+                    data = pickle.load(f)
+                    results.append(data["test_uar"])
+            uar_results[sex.stem].append(np.mean(results))
+print(f"Women best results: {np.max(uar_results['women'])}")
