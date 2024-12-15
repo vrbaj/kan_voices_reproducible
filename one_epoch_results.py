@@ -18,3 +18,7 @@ for hyper_settings in results_path.iterdir():
                     results.append(data["test_uar"])
             uar_results[sex.stem].append(np.mean(results))
 print(f"Women best results: {np.max(uar_results['women'])}")
+print(f"Women worst results: {np.min(uar_results['women'])}")
+
+with open("one_epoch_results.pkl", "wb") as f:
+    pickle.dump(uar_results, f)
