@@ -163,7 +163,7 @@ for regularization in regularization_part:
                         y=data['y']
 
                         # path where to store results
-                        results_path = Path(".", "results_kan", f"g{grid}_k{k}_entropy{entropy}_smoothing{smoothing}_reg{regularization}", sex)
+                        results_path = Path(".", "results_kan_params", f"g{grid}_k{k}_entropy{entropy}_smoothing{smoothing}_reg{regularization}", sex)
                         # get the number of features
                         input_size = X.shape[1]
                         # define KAN architectures
