@@ -168,7 +168,7 @@ for regularization in regularization_part:
                         input_size = X.shape[1]
                         # define KAN architectures
                         steps = list(np.linspace(0, 2, 11))
-                        kan_archs = [21, 5, 5, 2]
+                        kan_archs = [[21, 5, 5, 2]]
 
                         # iterate over KAN architectures and train for each dataset
                         for arch in kan_archs:
