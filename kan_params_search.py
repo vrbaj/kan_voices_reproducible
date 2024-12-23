@@ -212,11 +212,11 @@ for regularization in regularization_part:
                                 model.to(DEVICE)
                                 # train model
                                 print(dataset["train_input"].shape, dataset["test_input"].shape)
-                                results = model.fit(dataset, opt="LBFGS", lamb=0.001, lamb_entropy=entropy ,steps=100, batch=-1, update_grid=False,
+                                results = model.fit(dataset, opt="LBFGS", lamb=0.001, lamb_entropy=entropy ,steps=50, batch=-1, update_grid=False,
                                                     metrics=(
                                                         train_acc, train_uar, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar
                                                     ), loss_fn=torch.nn.CrossEntropyLoss(label_smoothing=smoothing),
-                                                    reg_metrics=regularization)
+                                                    reg_metric=regularization)
                                 # results = model.fit(dataset, opt="Adam", lr=0.01, steps=1000, batch=32, update_grid=False,
                                 #           metrics=(
                                 #               train_acc, train_uar, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar
