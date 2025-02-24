@@ -54,7 +54,8 @@ class MLP(nn.Module):
         for i in range(len(layer_sizes) - 1):
             layers.append(nn.Linear(layer_sizes[i], layer_sizes[i + 1]))
             layers.append(nn.Tanh())
-        layers.append(nn.Linear(layer_sizes[-1], 1))  # Single output neuron
+        layers.append(nn.Linear(layer_sizes[-1], 2))  # Two output neuron
+        layers.append(nn.Softmax(dim=1))
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -76,7 +77,7 @@ def train_and_evaluate(model, train_loader, val_loader, epochs, device):
     :param device: (torch.device) The device to use for training.
     :returns: (dict) A dictionary containing the evaluation metrics
     """
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.LBFGS(model.parameters())
     metrics = {"tp": [],
                "tn": [],
@@ -105,7 +106,7 @@ def train_and_evaluate(model, train_loader, val_loader, epochs, device):
         with torch.no_grad():
             for batch_x, batch_y in val_loader:
                 outputs = model(batch_x.to(device)).squeeze()
-                predictions = torch.sigmoid(outputs) > 0.5
+                predictions = torch.argmax(outputs, dim=1)
                 val_predictions.extend(predictions.cpu().numpy())
                 val_targets.extend(batch_y.cpu().numpy())
 
@@ -178,9 +179,9 @@ def main():
 
                 # Create DataLoader for training and validation sets
                 train_dataset = TensorDataset(torch.from_numpy(X_train_scaled).to(DEVICE),
-                                            torch.from_numpy(y_resampled).type(torch.float64).to(DEVICE))
+                                            torch.from_numpy(y_resampled).type(torch.long).to(DEVICE))
                 val_dataset = TensorDataset(torch.from_numpy(X_test_scaled).to(DEVICE),
-                                            torch.from_numpy(y_test).type(torch.float64).to(DEVICE))
+                                            torch.from_numpy(y_test).type(torch.long).to(DEVICE))
 
                 train_loader = DataLoader(train_dataset, batch_size=len(y_train), shuffle=True)
                 val_loader = DataLoader(val_dataset, batch_size=len(y_test), shuffle=False)
