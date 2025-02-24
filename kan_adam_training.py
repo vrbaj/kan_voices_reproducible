@@ -156,7 +156,7 @@ best_archs = {
         "entropy": 1.0,
         "smoothing": 0.0,
         "reg": "regedge_forward_spline_u",
-        "arch": [21,42,36,2]
+        "arch": [21,34,26,2]
     }
 }
 

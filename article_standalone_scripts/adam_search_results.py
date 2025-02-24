@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 best_uar = 0
 actual_uar = 10 * [0]
 best_arch = ""
-sex = "women"
+sex = "men"
 for params_setting in tqdm.tqdm(Path("..", "results_kan_adam").iterdir()):
     print(params_setting.name)
     try:
