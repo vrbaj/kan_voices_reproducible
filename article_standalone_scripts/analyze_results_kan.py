@@ -38,7 +38,7 @@ def main():
         "men": 0.0,
     }
 
-    pickled_results_path = Path(".", "results_kan")
+    pickled_results_path = Path("..", "results_kan_adam")
     for kan_settings in sorted(pickled_results_path.iterdir()):
         print(f"evaluating {kan_settings}")
         for dataset in sorted(kan_settings.iterdir()):

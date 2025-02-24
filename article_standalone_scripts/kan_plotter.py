@@ -6,7 +6,7 @@ import numpy as np
 
 
 if __name__ == "__main__":
-    pickled_results_path = Path(".", "[115_104_2]")
+    pickled_results_path = Path("..","results_mlp", "women", "[21_15_2]")
 
     for result in pickled_results_path.glob("*.pickle"):
         with open(result, "rb") as f:
@@ -16,8 +16,8 @@ if __name__ == "__main__":
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
 
         # First subplot for train and test accuracy
-        ax1.plot(experiment_results["train_loss"], label='Train loss', marker='o')
-        ax1.plot(experiment_results["test_loss"], label='Test loss', marker='o')
+        ax1.plot(experiment_results["uar"], label='Train loss', marker='o')
+        ax1.plot(experiment_results["uar"], label='Test loss', marker='o')
         ax1.set_xlabel('Epochs')
         ax1.set_ylabel('Losses')
         ax1.set_title('Losses')

@@ -32,7 +32,7 @@ def main():
         }
     }
 
-    pickled_results_path = Path(".", "results_mlp")
+    pickled_results_path = Path("..", "results_mlp")
     for dataset in sorted(pickled_results_path.iterdir()):
         sex = dataset.name
         print("Computing results for", sex)

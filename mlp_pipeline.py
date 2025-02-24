@@ -55,7 +55,8 @@ class MLP(nn.Module):
             layers.append(nn.Linear(layer_sizes[i], layer_sizes[i + 1]))
             layers.append(nn.Tanh())
         layers.append(nn.Linear(layer_sizes[-1], 2))  # Two output neuron
-        layers.append(nn.Softmax(dim=1))
+        #layers.append(nn.Softmax(dim=1))
+        #layers.append(nn.Linear(layer_sizes[-1], 1))
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -78,6 +79,7 @@ def train_and_evaluate(model, train_loader, val_loader, epochs, device):
     :returns: (dict) A dictionary containing the evaluation metrics
     """
     criterion = nn.CrossEntropyLoss()
+    #criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.LBFGS(model.parameters())
     metrics = {"tp": [],
                "tn": [],
@@ -107,6 +109,7 @@ def train_and_evaluate(model, train_loader, val_loader, epochs, device):
             for batch_x, batch_y in val_loader:
                 outputs = model(batch_x.to(device)).squeeze()
                 predictions = torch.argmax(outputs, dim=1)
+                #predictions = torch.sigmoid(outputs) > 0.5
                 val_predictions.extend(predictions.cpu().numpy())
                 val_targets.extend(batch_y.cpu().numpy())
 
