@@ -141,21 +141,19 @@ datasets = Path("", "training_data")
 # select computational device -> changed to CPU as it is faster for small datasets (as SVD)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(DEVICE)
-evaluated_ks = [3, 4, 5, 6]
-evaluated_grids = [5, 6, 7, 8, 9, 10]
-evaluated_entropy = [0.001, 0.005, 0.01, 0.1, 0.5, 1.0, 1.5, 2.0]
-evaluated_smoothing = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+evaluated_ks = [3, 4, 5]
+evaluated_grids = [5, 6, 7, 8]
+evaluated_entropy = [0.01, 0.1, 1.0]
+evaluated_smoothing = [0.0, 0.2, 0.4]
 regularization_part = ['edge_forward_spline_n',
                        'edge_forward_sum',
-                       'edge_forward_spline_u',
-                       'edge_backward',
-                       'node_backward']
+                       'edge_forward_spline_u']
 for regularization in regularization_part:
     for entropy in evaluated_entropy:
         for smoothing in evaluated_smoothing:
             for k in evaluated_ks:
                 for grid in evaluated_grids:
-                    for datadir in datasets.glob("*women*"):
+                    for datadir in datasets:
                         sex = datadir.stem
                         # load dataset
                         data = np.load(datadir.joinpath("datasets.npz"))
@@ -163,12 +161,20 @@ for regularization in regularization_part:
                         y=data['y']
 
                         # path where to store results
-                        results_path = Path(".", "results_kan_params", f"g{grid}_k{k}_entropy{entropy}_smoothing{smoothing}_reg{regularization}", sex)
+                        results_path = Path(".", "results_kan_params_5epochs", f"g{grid}_k{k}_entropy{entropy}_smoothing{smoothing}_reg{regularization}", sex)
                         # get the number of features
                         input_size = X.shape[1]
                         # define KAN architectures
                         steps = list(np.linspace(0, 2, 11))
-                        kan_archs = [[21, 5, 5, 2]]
+                        kan_archs = []
+                        for first in steps:
+                            first_layer = input_size * 2 - int(first * input_size)
+                            if first_layer > 0:
+                                kan_archs.append([input_size, first_layer, 2])
+                                for second in steps:
+                                    second_layer = input_size * 2 - int(second * input_size)
+                                    if first_layer >= second_layer > 0:
+                                        kan_archs.append([input_size, first_layer, second_layer, 2])
 
                         # iterate over KAN architectures and train for each dataset
                         for arch in kan_archs:
@@ -212,7 +218,7 @@ for regularization in regularization_part:
                                 model.to(DEVICE)
                                 # train model
                                 print(dataset["train_input"].shape, dataset["test_input"].shape)
-                                results = model.fit(dataset, opt="LBFGS", lamb=0.001, lamb_entropy=entropy ,steps=50, batch=-1, update_grid=False,
+                                results = model.fit(dataset, opt="LBFGS", lamb=0.001, lamb_entropy=entropy ,steps=5, batch=-1, update_grid=False,
                                                     metrics=(
                                                         train_acc, train_uar, test_acc, test_tn, test_tp, test_fn, test_fp, test_uar
                                                     ), loss_fn=torch.nn.CrossEntropyLoss(label_smoothing=smoothing),
