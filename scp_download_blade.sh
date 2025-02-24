@@ -1,1 +1,0 @@
-scp -r vrbaj@446-a336-j4.vscht.cz:/disk2/vrbaj/kan_voices_reproducible/training_data /home/vrbaj/tmp

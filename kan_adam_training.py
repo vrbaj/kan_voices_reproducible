@@ -151,7 +151,7 @@ for lrs in lr_list:
         for smoothing in evaluated_smoothing:
             for k in evaluated_ks:
                 for grid in evaluated_grids:
-                    for datadir in datasets.glob("women*"):
+                    for datadir in datasets.iterdir():
                         sex = datadir.stem
                         # load dataset
                         data = np.load(datadir.joinpath("datasets.npz"))
