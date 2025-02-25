@@ -147,7 +147,7 @@ best_archs = {
         "grid": 6,
         "entropy": 0.01,
         "smoothing": 0.0,
-        "reg": "regedge_forward_spline_n",
+        "reg": "edge_forward_spline_n",
         "arch": [21,42,26,2]
     },
     "women": {
@@ -155,37 +155,38 @@ best_archs = {
         "grid": 7,
         "entropy": 1.0,
         "smoothing": 0.0,
-        "reg": "regedge_forward_spline_u",
+        "reg": "edge_forward_spline_u",
         "arch": [21,34,26,2]
     }
 }
 
 lr_list=[0.01, 0.05, 0.001, 0.005, 0.0001, 0.0005, 0.00001, 0.00005,  0.000001, 0.000005]
-for lrs in lr_list:
-    for sex, best_dict in best_archs.items():
-        datadir = Path("training_data", sex)
-        # load dataset
-        data = np.load(datadir.joinpath("datasets.npz"))
-        X=data['X']
-        y=data['y']
+
+for sex, best_dict in best_archs.items():
+    datadir = Path("training_data", sex)
+    # load dataset
+    data = np.load(datadir.joinpath("datasets.npz"))
+    X=data['X']
+    y=data['y']
+
+    # get the number of features
+    input_size = X.shape[1]
+    # define KAN architectures
+    curr_arch = best_dict["arch"]
+    grid = best_dict["grid"]
+    k = best_dict["k"]
+    entropy = best_dict["entropy"]
+    smoothing = best_dict["smoothing"]
+    reg = best_dict["reg"]
+    str_arch = str(curr_arch).replace(",", "_").replace(" ", "").replace("[", "").replace("]", "")
+    for lrs in lr_list:
 
         # path where to store results
         results_path = Path(".", "results_kan_adam", f"g{grid}_k{k}_entropy{entropy}_smoothing{smoothing}_lr{lrs}_reg", sex)
-        # get the number of features
-        input_size = X.shape[1]
-        # define KAN architectures
-        arch = best_dict["arch"]
-        grid = best_dict["grid"]
-        k = best_dict["k"]
-        entropy = best_dict["entropy"]
-        smoothing = best_dict["smoothing"]
-        reg = best_dict["reg"]
-
 
         # create results directory for each dataset (done when defining results_path) and evaluated architecture
-        result_dir = results_path.joinpath(str(arch).replace(
-            ",", "_").replace(" ", "").replace(
-            "[", "").replace("]", ""))
+
+        result_dir = results_path.joinpath()
         if result_dir.exists() and len(list(result_dir.iterdir())) == 10:
             continue
         result_dir.mkdir(parents=True, exist_ok=True)
@@ -215,13 +216,13 @@ for lrs in lr_list:
             }
 
             # create KAN model
-            model = KAN(width=arch, grid=grid, k=k, seed=RANDOM_SEED,
+            model = KAN(width=curr_arch, grid=grid, k=k, seed=RANDOM_SEED,
                         auto_save=False, save_act=True)
             # load model to device
             model.to(DEVICE)
             # train model
             print(dataset["train_input"].shape, dataset["test_input"].shape)
-            results = model.fit(dataset, opt="Adam", lr=lrs, lamb=0.001, lamb_entropy=entropy, steps=200,
+            results = model.fit(dataset, opt="Adam", lr=lrs, lamb=0.001, lamb_entropy=entropy, steps=1,
                                 batch=-1, update_grid=False,
                                 metrics=(
                                     train_acc, train_uar, test_acc, test_tn, test_tp, test_fn,
