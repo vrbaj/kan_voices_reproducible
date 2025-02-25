@@ -182,7 +182,7 @@ for sex, best_dict in best_archs.items():
     for lrs in lr_list:
 
         # path where to store results
-        results_path = Path(".", "results_kan_adam", f"g{grid}_k{k}_entropy{entropy}_smoothing{smoothing}_lr{lrs}_reg", sex)
+        results_path = Path(".", "results_kan_adam", f"g{grid}_k{k}_entropy{entropy}_smoothing{smoothing}_lr{lrs}_reg", sex, str_arch)
 
         # create results directory for each dataset (done when defining results_path) and evaluated architecture
 
@@ -222,7 +222,7 @@ for sex, best_dict in best_archs.items():
             model.to(DEVICE)
             # train model
             print(dataset["train_input"].shape, dataset["test_input"].shape)
-            results = model.fit(dataset, opt="Adam", lr=lrs, lamb=0.001, lamb_entropy=entropy, steps=1,
+            results = model.fit(dataset, opt="Adam", lr=lrs, lamb=0.001, lamb_entropy=entropy, steps=200,
                                 batch=-1, update_grid=False,
                                 metrics=(
                                     train_acc, train_uar, test_acc, test_tn, test_tp, test_fn,
