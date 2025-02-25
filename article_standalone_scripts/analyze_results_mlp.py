@@ -31,32 +31,36 @@ def main():
             "bm": 0.0
         }
     }
+    optimistic_uar = {
+        "women": 0.0,
+        "men": 0.0,
+    }
 
     pickled_results_path = Path("..", "results_mlp")
     for dataset in sorted(pickled_results_path.iterdir()):
         sex = dataset.name
-        print("Computing results for", sex)
-        best_uar = 0
-        optimistic_uar = 0
-        trash = 0
-        for arch_result in tqdm(list(dataset.iterdir())):
+        for arch in tqdm(list(dataset.iterdir())):
             result_all_splits = {}
-            for result in arch_result.glob("*.pickle"):
+            for result in arch.glob("*.pickle"):
                 # read result for a single train/test split
                 # and save it into dictionary
                 idx = int(result.stem.split("_")[-1])
                 with open(result, "rb") as f:
-                    result_all_splits[idx] = pickle.load(f)
+                        split_result = pickle.load(f)
+                for key, val in split_result.items():
+                    if not key in result_all_splits.keys():
+                        result_all_splits[key] = [val]
+                    else:
+                        result_all_splits[key].append(val)
 
-            uars = np.array([result["uar"] for result in result_all_splits.values()])
-            optimistic_uar = np.max([optimistic_uar, np.mean(np.max(uars,axis=1))])
-            if np.any(np.all(uars <= 0.5,axis=1)):
-                trash += 1
-            best_idx = np.argmax(np.mean(uars,axis=0))
-            tps = np.array([result["tp"][best_idx] for result in result_all_splits.values()])
-            fps = np.array([result["fp"][best_idx] for result in result_all_splits.values()])
-            tns = np.array([result["tn"][best_idx] for result in result_all_splits.values()])
-            fns = np.array([result["fn"][best_idx] for result in result_all_splits.values()])
+            for key, val in result_all_splits.items():
+                result_all_splits[key] = np.array(val)
+            optimistic_uar[sex] = np.max([optimistic_uar[sex], np.mean(np.max(result_all_splits["uar"],axis=1))])
+            best_idx = np.argmax(result_all_splits["uar"],axis=1)
+            tps = result_all_splits["tp"][np.arange(len(best_idx)), best_idx]
+            fps = result_all_splits["fp"][np.arange(len(best_idx)), best_idx]
+            tns = result_all_splits["tn"][np.arange(len(best_idx)), best_idx]
+            fns = result_all_splits["fn"][np.arange(len(best_idx)), best_idx]
 
             sensitivity = tps/(tps+fns)
             specificity = tns/(tns+fps)
@@ -67,8 +71,7 @@ def main():
                 mcc = -1*np.ones_like(specificity)
 
 
-            if np.mean(sensitivity/2+specificity/2) > best_uar:
-                best_uar = np.mean(sensitivity/2+specificity/2)
+            if np.mean(sensitivity/2+specificity/2) >  best_results[sex]["uar"]:
                 best_results[sex]["mcc"] = np.mean(mcc)
                 best_results[sex]["mcc_std"] = np.std(mcc)
                 best_results[sex]["sensitivity"] = np.mean(sensitivity)
@@ -81,10 +84,8 @@ def main():
                 best_results[sex]["gm_std"] = np.std(np.sqrt(sensitivity * specificity))
                 best_results[sex]["uar"] = np.mean(sensitivity/2+specificity/2)
                 best_results[sex]["uar_std"] = np.std(sensitivity/2+specificity/2)
-                best_results[sex]["architecture"] = arch_result.name
-        print(f"Sex: {sex}")
-        print(f"Optimistic UAR: {optimistic_uar}")
-        print("Trash: ", trash)
+                best_results[sex]["architecture"] = arch.name
+    print(f"Optimistic UAR: {optimistic_uar}")
     return best_results
 
 if __name__ == "__main__":

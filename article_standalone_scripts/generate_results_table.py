@@ -18,15 +18,17 @@ def best_dataset_for_each_clf():
     :param sex: men or women, selection of what kind of results should be reported
     :return result_merged: Table with both the best results for each classifier and the dataset configuration
     """
-    results_path = Path(".").resolve().parents[0].joinpath("results")
-    classifiers = [item.name for item in results_path.iterdir()]
+    results_path = Path("..").joinpath("results")
+
     results = {"men": [],
                "women": []}
     cls_params = {"men": {},
                "women": {}}
-    for classifier in classifiers:
-        for sex in SEXES:
-            to_process = pd.read_csv(results_path.joinpath(classifier, sex, "0", "results.csv"))
+
+    for sex in SEXES:
+        classifiers = [item.name for item in results_path.joinpath(sex).iterdir()]
+        for classifier in classifiers:
+            to_process = pd.read_csv(results_path.joinpath(sex, classifier, "results.csv"))
 
             best = to_process[to_process.mean_test_mcc == to_process.mean_test_mcc.max()].iloc[0]
             cls_params[sex][f"{classifier.upper().replace("_", " ")}"] = best.params
