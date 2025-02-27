@@ -3,6 +3,6 @@
 venv
 __pycache__
 training_data
-results*/
+results*
 svd_db
 dataset
